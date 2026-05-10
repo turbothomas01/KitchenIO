@@ -17,6 +17,8 @@ It is similar in concept to Grocy, but deliberately minimal. There are no recipe
 - Edit, delete, and mark shopping list items completed.
 - Light and dark themes.
 - English and Norwegian UI language.
+- Settings page for default theme, default language, and API key creation.
+- Optional API key protection for integrations: once a key exists, API calls require it.
 - SQLite storage.
 - REST API for Home Assistant, Hermes Agent, scripts, and automations.
 - Docker and Docker Compose support.
@@ -78,6 +80,36 @@ KITCHENIO_DB=/path/to/kitchenio.db python -m uvicorn kitchenio.app:app --reload
 ```bash
 . .venv/bin/activate
 python -m pytest -q
+```
+
+## Settings and API keys
+
+Open the settings page from the KitchenIO header, or go directly to:
+
+```text
+http://localhost:8000/settings
+```
+
+The settings page lets you choose the default UI language and theme. It also lets you create API keys for trusted integrations such as Home Assistant and Hermes Agent.
+
+API key behavior is intentionally simple for home setup:
+
+- If no API key exists yet, the API is open on the local server so you can bootstrap KitchenIO.
+- After you create the first API key, API endpoints require a valid key.
+- The UI remains available locally for managing KitchenIO.
+- Newly generated keys are shown once. Copy the key immediately.
+- After the first key exists, creating additional keys from settings requires entering an existing API key.
+
+Use either header format:
+
+```http
+X-API-Key: kio_your_key_here
+```
+
+or:
+
+```http
+Authorization: Bearer kio_your_key_here
 ```
 
 ## Accessibility notes
@@ -258,7 +290,14 @@ POST /api/shopping-list/1/complete
 
 ## Home Assistant examples
 
-Replace `http://kitchenio.local:8000` with your KitchenIO URL.
+Replace `http://kitchenio.local:8000` with your KitchenIO URL. If you have created an API key in KitchenIO settings, include it in each REST call.
+
+Example header:
+
+```yaml
+headers:
+  X-API-Key: !secret kitchenio_api_key
+```
 
 ### REST sensor for stock
 
@@ -267,6 +306,8 @@ sensor:
   - platform: rest
     name: KitchenIO Stock
     resource: http://kitchenio.local:8000/api/stock
+    headers:
+      X-API-Key: !secret kitchenio_api_key
     value_template: "{{ value_json | count }}"
     json_attributes:
       - id
@@ -284,6 +325,7 @@ rest_command:
     method: POST
     headers:
       content-type: application/json
+      X-API-Key: !secret kitchenio_api_key
     payload: >
       {
         "item": "{{ item }}",
@@ -316,7 +358,7 @@ action:
 
 ## Hermes Agent usage examples
 
-KitchenIO's API uses simple JSON and predictable endpoints, so Hermes Agent can call it directly.
+KitchenIO's API uses simple JSON, predictable endpoints, and a single API key header, so Hermes Agent can call it directly. Create a key on `/settings`, store it securely, and send it as `X-API-Key`.
 
 Examples of commands Hermes Agent can perform:
 
@@ -334,14 +376,17 @@ Examples of commands Hermes Agent can perform:
 Example curl commands:
 
 ```bash
-curl http://localhost:8000/api/stock
+curl http://localhost:8000/api/stock \
+  -H "X-API-Key: $KITCHENIO_API_KEY"
 
 curl -X POST http://localhost:8000/api/stock \
   -H 'Content-Type: application/json' \
+  -H "X-API-Key: $KITCHENIO_API_KEY" \
   -d '{"name":"Coffee","description":"Whole beans","amount":"1"}'
 
 curl -X POST http://localhost:8000/api/shopping-list \
   -H 'Content-Type: application/json' \
+  -H "X-API-Key: $KITCHENIO_API_KEY" \
   -d '{"item":"Milk","amount":"2"}'
 ```
 

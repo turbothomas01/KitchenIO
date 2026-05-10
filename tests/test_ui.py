@@ -23,7 +23,7 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert [tab.get_text(strip=True) for tab in tabs] == ["Stock", "Shopping List"]
     assert all(tab.has_attr("aria-controls") for tab in tabs)
     assert all(tab.has_attr("aria-selected") for tab in tabs)
-    assert soup.find(id="shopping-panel").get("hidden") is None
+    assert soup.find("a", href="/settings") is not None
 
     forms = soup.find_all("form")
     assert forms
@@ -38,12 +38,6 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert buttons
     for button in buttons:
         assert button.get_text(strip=True) or button.get("aria-label")
-
-    theme_select = soup.find("select", attrs={"name": "theme"})
-    assert {option["value"] for option in theme_select.find_all("option")} == {"light", "dark"}
-
-    language_select = soup.find("select", attrs={"name": "lang"})
-    assert {option["value"] for option in language_select.find_all("option")} == {"en", "no"}
 
 
 def test_norwegian_ui_text_is_available(tmp_path: Path):

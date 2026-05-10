@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t.settings }} - {{ t.app_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body data-theme="{{ theme }}">
+  <header class="site-header">
+    <div>
+      <h1>{{ t.settings }}</h1>
+      <p>{{ t.settings_intro }}</p>
+      <a href="/">{{ t.back_home }}</a>
+    </div>
+  </header>
+
+  <main>
+    {% if saved %}
+      <p role="status" class="notice">{{ t.saved }}</p>
+    {% endif %}
+
+    <section class="card" aria-labelledby="preferences-heading">
+      <h2 id="preferences-heading">{{ t.preferences }}</h2>
+      <form method="post" action="/settings">
+        <div>
+          <label for="settings-language">{{ t.language }}</label>
+          <select id="settings-language" name="language">
+            <option value="en" {% if settings.language == 'en' %}selected{% endif %}>{{ t.english }}</option>
+            <option value="no" {% if settings.language == 'no' %}selected{% endif %}>{{ t.norwegian }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="settings-theme">{{ t.theme }}</label>
+          <select id="settings-theme" name="theme">
+            <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>{{ t.light }}</option>
+            <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>{{ t.dark }}</option>
+          </select>
+        </div>
+        <button type="submit">{{ t.save }}</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="api-keys-heading">
+      <h2 id="api-keys-heading">{{ t.api_keys }}</h2>
+      <p>{{ t.api_key_intro }}</p>
+
+      {% if new_api_key %}
+        <div class="notice" role="status">
+          <h3>{{ t.created_api_key }}</h3>
+          <p><strong>{{ t.copy_key_now }}</strong></p>
+          <output id="new-api-key">{{ new_api_key }}</output>
+        </div>
+      {% endif %}
+
+      <form method="post" action="/settings/api-keys">
+        <div>
+          <label for="api-key-name">{{ t.api_key_name }}</label>
+          <input id="api-key-name" name="name" autocomplete="off" required>
+        </div>
+        {% if has_api_keys %}
+        <div>
+          <label for="current-api-key">{{ t.current_api_key }}</label>
+          <input id="current-api-key" name="current_api_key" type="password" autocomplete="off" aria-describedby="current-api-key-help" required>
+          <p id="current-api-key-help">{{ t.current_api_key_help }}</p>
+        </div>
+        {% endif %}
+        <button type="submit">{{ t.create_api_key }}</button>
+      </form>
+
+      <h3>{{ t.existing_api_keys }}</h3>
+      {% if api_keys %}
+        <ul class="item-list" aria-label="{{ t.existing_api_keys }}">
+        {% for key in api_keys %}
+          <li class="item-card">
+            <div>
+              <strong>{{ key.name }}</strong>
+              <span>{{ masked_key_label }}</span>
+              <span>{{ t.created }}: {{ key.created_at }}</span>
+            </div>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>{{ t.no_api_keys }}</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

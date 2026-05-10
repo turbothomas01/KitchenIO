@@ -11,24 +11,8 @@
     <div>
       <h1>{{ t.app_name }}</h1>
       <p>{{ t.tagline }}</p>
+      <a href="/settings">{{ t.settings }}</a>
     </div>
-    <form class="preferences" method="get" action="/" aria-label="{{ t.preferences }}">
-      <div>
-        <label for="language-select">{{ t.language }}</label>
-        <select id="language-select" name="lang">
-          <option value="en" {% if lang == 'en' %}selected{% endif %}>{{ t.english }}</option>
-          <option value="no" {% if lang == 'no' %}selected{% endif %}>{{ t.norwegian }}</option>
-        </select>
-      </div>
-      <div>
-        <label for="theme-select">{{ t.theme }}</label>
-        <select id="theme-select" name="theme">
-          <option value="light" {% if theme == 'light' %}selected{% endif %}>{{ t.light }}</option>
-          <option value="dark" {% if theme == 'dark' %}selected{% endif %}>{{ t.dark }}</option>
-        </select>
-      </div>
-      <button type="submit">{{ t.apply }}</button>
-    </form>
   </header>
 
   <main>
@@ -41,24 +25,27 @@
 
     <section id="stock-panel" class="panel" role="tabpanel" aria-labelledby="stock-tab" tabindex="-1">
       <h2>{{ t.stock }}</h2>
-      <form method="post" action="/ui/stock" class="card" aria-labelledby="add-stock-heading">
-        <h3 id="add-stock-heading">{{ t.add_stock }}</h3>
-        <input type="hidden" name="lang" value="{{ lang }}">
-        <input type="hidden" name="theme" value="{{ theme }}">
-        <div>
-          <label for="stock-name">{{ t.name }}</label>
-          <input id="stock-name" name="name" autocomplete="off" required>
-        </div>
-        <div>
-          <label for="stock-description">{{ t.description }}</label>
-          <textarea id="stock-description" name="description" rows="3"></textarea>
-        </div>
-        <div>
-          <label for="stock-amount">{{ t.amount }}</label>
-          <input id="stock-amount" name="amount" autocomplete="off" required>
-        </div>
-        <button type="submit">{{ t.add_stock }}</button>
-      </form>
+      <details id="add-stock" class="card">
+        <summary>+ {{ t.add_stock }}</summary>
+        <form method="post" action="/ui/stock" aria-labelledby="add-stock-heading">
+          <h3 id="add-stock-heading">{{ t.add_stock }}</h3>
+          <input type="hidden" name="lang" value="{{ lang }}">
+          <input type="hidden" name="theme" value="{{ theme }}">
+          <div>
+            <label for="stock-name">{{ t.name }}</label>
+            <input id="stock-name" name="name" autocomplete="off" required>
+          </div>
+          <div>
+            <label for="stock-description">{{ t.description }}</label>
+            <textarea id="stock-description" name="description" rows="3"></textarea>
+          </div>
+          <div>
+            <label for="stock-amount">{{ t.amount }}</label>
+            <input id="stock-amount" name="amount" autocomplete="off" required>
+          </div>
+          <button type="submit">{{ t.add_stock }}</button>
+        </form>
+      </details>
 
       <h3>{{ t.stock_items }}</h3>
       {% if stock_items %}
@@ -105,21 +92,24 @@
 
     <section id="shopping-panel" class="panel" role="tabpanel" aria-labelledby="shopping-tab" tabindex="-1">
       <h2>{{ t.shopping_list }}</h2>
-      <form method="post" action="/ui/shopping-list" class="card" aria-labelledby="add-shopping-heading">
-        <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
-        <p>{{ t.plain_text_hint }}</p>
-        <input type="hidden" name="lang" value="{{ lang }}">
-        <input type="hidden" name="theme" value="{{ theme }}">
-        <div>
-          <label for="shopping-item">{{ t.item }}</label>
-          <input id="shopping-item" name="item" autocomplete="off" required>
-        </div>
-        <div>
-          <label for="shopping-amount">{{ t.amount }}</label>
-          <input id="shopping-amount" name="amount" autocomplete="off" required>
-        </div>
-        <button type="submit">{{ t.add_shopping }}</button>
-      </form>
+      <details id="add-shopping" class="card">
+        <summary>+ {{ t.add_shopping }}</summary>
+        <form method="post" action="/ui/shopping-list" aria-labelledby="add-shopping-heading">
+          <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
+          <p>{{ t.plain_text_hint }}</p>
+          <input type="hidden" name="lang" value="{{ lang }}">
+          <input type="hidden" name="theme" value="{{ theme }}">
+          <div>
+            <label for="shopping-item">{{ t.item }}</label>
+            <input id="shopping-item" name="item" autocomplete="off" required>
+          </div>
+          <div>
+            <label for="shopping-amount">{{ t.amount }}</label>
+            <input id="shopping-amount" name="amount" autocomplete="off" required>
+          </div>
+          <button type="submit">{{ t.add_shopping }}</button>
+        </form>
+      </details>
 
       <h3>{{ t.shopping_items }}</h3>
       {% if shopping_items %}

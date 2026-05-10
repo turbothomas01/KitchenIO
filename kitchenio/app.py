@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import os
+import secrets
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, Form, Header, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -22,6 +25,21 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "tagline": "Minimal stock and shopping list management for your home.",
         "main_sections": "Main sections",
         "preferences": "Preferences",
+        "settings": "Settings",
+        "settings_intro": "Choose the default language and theme for KitchenIO.",
+        "api_keys": "API keys",
+        "api_key_intro": "Create API keys for Home Assistant, Hermes Agent, and other trusted local integrations.",
+        "api_key_name": "API key name",
+        "current_api_key": "Current API key",
+        "current_api_key_help": "Required when API keys already exist.",
+        "create_api_key": "Create API key",
+        "created_api_key": "Created API key",
+        "copy_key_now": "Copy this key now. KitchenIO will not show it again.",
+        "existing_api_keys": "Existing API keys",
+        "no_api_keys": "No API keys yet. Until you create one, the local API is open for setup.",
+        "created": "Created",
+        "back_home": "Back to KitchenIO",
+        "saved": "Settings saved.",
         "language": "Language",
         "theme": "Theme",
         "english": "English",
@@ -59,6 +77,21 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "tagline": "Minimal lager- og handlelistehåndtering for hjemmet.",
         "main_sections": "Hovedseksjoner",
         "preferences": "Innstillinger",
+        "settings": "Innstillinger",
+        "settings_intro": "Velg standard språk og tema for KitchenIO.",
+        "api_keys": "API-nøkler",
+        "api_key_intro": "Opprett API-nøkler for Home Assistant, Hermes Agent og andre betrodde lokale integrasjoner.",
+        "api_key_name": "Navn på API-nøkkel",
+        "current_api_key": "Nåværende API-nøkkel",
+        "current_api_key_help": "Påkrevd når API-nøkler allerede finnes.",
+        "create_api_key": "Opprett API-nøkkel",
+        "created_api_key": "Opprettet API-nøkkel",
+        "copy_key_now": "Kopier denne nøkkelen nå. KitchenIO viser den ikke igjen.",
+        "existing_api_keys": "Eksisterende API-nøkler",
+        "no_api_keys": "Ingen API-nøkler ennå. Frem til du oppretter en, er det lokale API-et åpent for oppsett.",
+        "created": "Opprettet",
+        "back_home": "Tilbake til KitchenIO",
+        "saved": "Innstillingene er lagret.",
         "language": "Språk",
         "theme": "Tema",
         "english": "Engelsk",
@@ -154,6 +187,84 @@ def dict_from_row(row: sqlite3.Row) -> dict[str, Any]:
     return item
 
 
+def utc_now() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def hash_api_key(api_key: str) -> str:
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+
+def get_settings(conn: sqlite3.Connection) -> dict[str, str]:
+    rows = conn.execute("SELECT key, value FROM settings").fetchall()
+    settings_map = {row["key"]: row["value"] for row in rows}
+    return {
+        "language": normalize_language(settings_map.get("language")),
+        "theme": normalize_theme(settings_map.get("theme")),
+    }
+
+
+def save_settings(conn: sqlite3.Connection, language: str, theme: str) -> dict[str, str]:
+    normalized = {"language": normalize_language(language), "theme": normalize_theme(theme)}
+    for key, value in normalized.items():
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+    conn.commit()
+    return normalized
+
+
+def list_api_keys(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    return [
+        dict_from_row(row)
+        for row in conn.execute(
+            "SELECT id, name, created_at, last_used_at FROM api_keys ORDER BY created_at DESC"
+        )
+    ]
+
+
+def create_api_key_record(conn: sqlite3.Connection, name: str) -> str:
+    clean_name = name.strip()
+    if not clean_name:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="API key name is required")
+    api_key = f"kio_{secrets.token_urlsafe(32)}"
+    conn.execute(
+        "INSERT INTO api_keys (name, key_hash, created_at) VALUES (?, ?, ?)",
+        (clean_name, hash_api_key(api_key), utc_now()),
+    )
+    conn.commit()
+    return api_key
+
+
+def any_api_keys(conn: sqlite3.Connection) -> bool:
+    return conn.execute("SELECT 1 FROM api_keys LIMIT 1").fetchone() is not None
+
+
+def verify_api_key(conn: sqlite3.Connection, api_key: str | None) -> bool:
+    if not api_key:
+        return False
+    key_hash = hash_api_key(api_key)
+    row = conn.execute("SELECT id FROM api_keys WHERE key_hash = ?", (key_hash,)).fetchone()
+    if row is None:
+        return False
+    conn.execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", (utc_now(), row["id"]))
+    conn.commit()
+    return True
+
+
+def api_key_from_headers(x_api_key: str | None, authorization: str | None) -> str | None:
+    if x_api_key:
+        return x_api_key
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization[7:].strip()
+    return None
+
+
+def masked_key_label() -> str:
+    return "kio_••••••••••••••••"
+
+
 def init_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as conn:
@@ -179,6 +290,27 @@ def init_db(db_path: Path) -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                last_used_at TEXT
+            )
+            """
+        )
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'en')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'light')")
 
 
 def get_connection(db_path: Path) -> sqlite3.Connection:
@@ -207,6 +339,22 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         finally:
             conn.close()
 
+    def require_api_key(
+        conn: sqlite3.Connection = Depends(db),
+        x_api_key: str | None = Header(default=None),
+        authorization: str | None = Header(default=None),
+    ) -> None:
+        if not any_api_keys(conn):
+            return
+        api_key = api_key_from_headers(x_api_key, authorization)
+        if verify_api_key(conn, api_key):
+            return
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Valid API key required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -215,11 +363,12 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
     def home(
         request: Request,
         conn: sqlite3.Connection = Depends(db),
-        lang: str = Query(default="en"),
-        theme: str = Query(default="light"),
+        lang: str | None = Query(default=None),
+        theme: str | None = Query(default=None),
     ) -> HTMLResponse:
-        current_lang = normalize_language(lang)
-        current_theme = normalize_theme(theme)
+        persisted_settings = get_settings(conn)
+        current_lang = normalize_language(lang or persisted_settings["language"])
+        current_theme = normalize_theme(theme or persisted_settings["theme"])
         stock = [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
         shopping = [
             dict_from_row(row)
@@ -237,12 +386,83 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
             },
         )
 
+    @app.get("/settings", response_class=HTMLResponse)
+    def settings_page(
+        request: Request,
+        conn: sqlite3.Connection = Depends(db),
+        saved: bool = Query(default=False),
+    ) -> HTMLResponse:
+        persisted_settings = get_settings(conn)
+        current_lang = persisted_settings["language"]
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "t": TRANSLATIONS[current_lang],
+                "lang": current_lang,
+                "theme": persisted_settings["theme"],
+                "settings": persisted_settings,
+                "api_keys": list_api_keys(conn),
+                "has_api_keys": any_api_keys(conn),
+                "new_api_key": None,
+                "saved": saved,
+                "masked_key_label": masked_key_label(),
+            },
+        )
+
+    @app.post("/settings")
+    def save_settings_page(
+        conn: sqlite3.Connection = Depends(db),
+        language: str = Form(...),
+        theme: str = Form(...),
+    ) -> RedirectResponse:
+        save_settings(conn, language, theme)
+        return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
+
+    @app.post("/settings/api-keys", response_class=HTMLResponse)
+    def create_api_key_page(
+        request: Request,
+        conn: sqlite3.Connection = Depends(db),
+        name: str = Form(...),
+        current_api_key: str = Form(""),
+    ) -> HTMLResponse:
+        if any_api_keys(conn) and not verify_api_key(conn, current_api_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current API key required to create another API key",
+            )
+        new_api_key = create_api_key_record(conn, name)
+        persisted_settings = get_settings(conn)
+        current_lang = persisted_settings["language"]
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "t": TRANSLATIONS[current_lang],
+                "lang": current_lang,
+                "theme": persisted_settings["theme"],
+                "settings": persisted_settings,
+                "api_keys": list_api_keys(conn),
+                "has_api_keys": any_api_keys(conn),
+                "new_api_key": new_api_key,
+                "saved": False,
+                "masked_key_label": masked_key_label(),
+            },
+        )
+
     @app.get("/api/stock", response_model=list[StockItem])
-    def list_stock(conn: sqlite3.Connection = Depends(db)) -> list[dict[str, Any]]:
+    def list_stock(
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> list[dict[str, Any]]:
         return [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
 
     @app.post("/api/stock", response_model=StockItem, status_code=status.HTTP_201_CREATED)
-    def add_stock(payload: StockCreate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def add_stock(
+        payload: StockCreate,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         cursor = conn.execute(
             "INSERT INTO stock_items (name, description, amount) VALUES (?, ?, ?)",
             (payload.name.strip(), payload.description.strip(), payload.amount.strip()),
@@ -251,7 +471,12 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         return get_stock_or_404(conn, cursor.lastrowid)
 
     @app.put("/api/stock/{item_id}", response_model=StockItem)
-    def update_stock(item_id: int, payload: StockUpdate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def update_stock(
+        item_id: int,
+        payload: StockUpdate,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         ensure_stock_exists(conn, item_id)
         conn.execute(
             "UPDATE stock_items SET name = ?, description = ?, amount = ? WHERE id = ?",
@@ -261,7 +486,11 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         return get_stock_or_404(conn, item_id)
 
     @app.delete("/api/stock/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-    def delete_stock(item_id: int, conn: sqlite3.Connection = Depends(db)) -> None:
+    def delete_stock(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> None:
         ensure_stock_exists(conn, item_id)
         conn.execute("DELETE FROM stock_items WHERE id = ?", (item_id,))
         conn.commit()
@@ -272,7 +501,11 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         response_model=ShoppingItem,
         status_code=status.HTTP_201_CREATED,
     )
-    def add_stock_to_shopping_list(item_id: int, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def add_stock_to_shopping_list(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         stock = get_stock_or_404(conn, item_id)
         cursor = conn.execute(
             "INSERT INTO shopping_list_items (item, amount, completed, stock_item_id) VALUES (?, ?, 0, ?)",
@@ -282,7 +515,10 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         return get_shopping_or_404(conn, cursor.lastrowid)
 
     @app.get("/api/shopping-list", response_model=list[ShoppingItem])
-    def list_shopping(conn: sqlite3.Connection = Depends(db)) -> list[dict[str, Any]]:
+    def list_shopping(
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> list[dict[str, Any]]:
         return [
             dict_from_row(row)
             for row in conn.execute("SELECT * FROM shopping_list_items ORDER BY completed, item")
@@ -291,7 +527,11 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
     @app.post(
         "/api/shopping-list", response_model=ShoppingItem, status_code=status.HTTP_201_CREATED
     )
-    def add_shopping(payload: ShoppingCreate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def add_shopping(
+        payload: ShoppingCreate,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         if payload.stock_item_id is not None:
             ensure_stock_exists(conn, payload.stock_item_id)
         cursor = conn.execute(
@@ -305,7 +545,12 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         return get_shopping_or_404(conn, cursor.lastrowid)
 
     @app.put("/api/shopping-list/{item_id}", response_model=ShoppingItem)
-    def update_shopping(item_id: int, payload: ShoppingUpdate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def update_shopping(
+        item_id: int,
+        payload: ShoppingUpdate,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         ensure_shopping_exists(conn, item_id)
         if payload.stock_item_id is not None:
             ensure_stock_exists(conn, payload.stock_item_id)
@@ -327,14 +572,22 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         return get_shopping_or_404(conn, item_id)
 
     @app.delete("/api/shopping-list/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-    def delete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db)) -> None:
+    def delete_shopping(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> None:
         ensure_shopping_exists(conn, item_id)
         conn.execute("DELETE FROM shopping_list_items WHERE id = ?", (item_id,))
         conn.commit()
         return None
 
     @app.post("/api/shopping-list/{item_id}/complete", response_model=ShoppingItem)
-    def complete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+    def complete_shopping(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        _api_key: None = Depends(require_api_key),
+    ) -> dict[str, Any]:
         ensure_shopping_exists(conn, item_id)
         conn.execute("UPDATE shopping_list_items SET completed = 1 WHERE id = ?", (item_id,))
         conn.commit()
