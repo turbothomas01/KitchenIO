@@ -1,0 +1,14 @@
+services:
+  kitchenio:
+    build: .
+    container_name: kitchenio
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - kitchenio-data:/data
+    environment:
+      KITCHENIO_DB: /data/kitchenio.db
+
+volumes:
+  kitchenio-data:

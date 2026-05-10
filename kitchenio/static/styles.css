@@ -1,0 +1,200 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+body[data-theme="light"] {
+  --bg: #f7f7f3;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --muted: #555761;
+  --border: #c9ccd4;
+  --accent: #064f8a;
+  --accent-text: #ffffff;
+}
+
+body[data-theme="dark"] {
+  --bg: #111318;
+  --surface: #1d2028;
+  --text: #f3f4f8;
+  --muted: #c5c8d2;
+  --border: #555b68;
+  --accent: #8fc7ff;
+  --accent-text: #111318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.site-header,
+main {
+  width: min(70rem, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 2rem 0 1rem;
+}
+
+.preferences,
+.card,
+.edit-form,
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.preferences {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+[role="tab"] {
+  background: transparent;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  padding: 0.6rem 1rem;
+}
+
+[role="tab"][aria-selected="true"],
+[role="tab"]:focus,
+[role="tab"]:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.panel {
+  margin-block: 1.5rem;
+}
+
+.card,
+.edit-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 42rem;
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+input,
+textarea,
+select,
+button {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font: inherit;
+  padding: 0.65rem;
+}
+
+input,
+textarea,
+select {
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+input[type="checkbox"] {
+  width: auto;
+}
+
+.checkbox-row {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.checkbox-row label {
+  margin: 0;
+}
+
+button {
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:focus,
+input:focus,
+textarea:focus,
+select:focus,
+a:focus {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+.item-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.item-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.item-card span,
+.item-card p {
+  color: var(--muted);
+  display: block;
+  margin: 0.15rem 0 0;
+}
+
+.item-card.completed {
+  border-style: dashed;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+@media (max-width: 44rem) {
+  .site-header,
+  .item-card,
+  .preferences {
+    display: block;
+  }
+
+  .preferences > *,
+  .actions > *,
+  button {
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+}

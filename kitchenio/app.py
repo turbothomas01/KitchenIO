@@ -1,0 +1,454 @@
+from __future__ import annotations
+
+import os
+import sqlite3
+from pathlib import Path
+from typing import Any
+
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+PACKAGE_DIR = Path(__file__).resolve().parent
+DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
+SUPPORTED_LANGUAGES = {"en", "no"}
+SUPPORTED_THEMES = {"light", "dark"}
+
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        "app_name": "KitchenIO",
+        "tagline": "Minimal stock and shopping list management for your home.",
+        "main_sections": "Main sections",
+        "preferences": "Preferences",
+        "language": "Language",
+        "theme": "Theme",
+        "english": "English",
+        "norwegian": "Norwegian",
+        "light": "Light",
+        "dark": "Dark",
+        "apply": "Apply",
+        "stock": "Stock",
+        "shopping_list": "Shopping List",
+        "add_stock": "Add to stock",
+        "edit_stock": "Edit stock item",
+        "stock_items": "Stock items",
+        "no_stock": "No stock items yet.",
+        "name": "Name",
+        "description": "Description",
+        "amount": "Amount",
+        "actions": "Actions",
+        "save": "Save",
+        "delete": "Delete",
+        "add_to_shopping_list": "Add to shopping list",
+        "add_shopping": "Add shopping item",
+        "edit_shopping": "Edit shopping item",
+        "shopping_items": "Shopping list items",
+        "no_shopping": "No shopping list items yet.",
+        "item": "Item",
+        "completed": "Completed",
+        "mark_completed": "Mark completed",
+        "yes": "Yes",
+        "no": "No",
+        "from_stock": "From stock",
+        "plain_text_hint": "Plain text items do not need to exist in stock.",
+    },
+    "no": {
+        "app_name": "KitchenIO",
+        "tagline": "Minimal lager- og handlelistehåndtering for hjemmet.",
+        "main_sections": "Hovedseksjoner",
+        "preferences": "Innstillinger",
+        "language": "Språk",
+        "theme": "Tema",
+        "english": "Engelsk",
+        "norwegian": "Norsk",
+        "light": "Lyst",
+        "dark": "Mørkt",
+        "apply": "Bruk",
+        "stock": "Lager",
+        "shopping_list": "Handleliste",
+        "add_stock": "Legg til i lager",
+        "edit_stock": "Rediger lagervare",
+        "stock_items": "Lagervarer",
+        "no_stock": "Ingen lagervarer ennå.",
+        "name": "Navn",
+        "description": "Beskrivelse",
+        "amount": "Mengde",
+        "actions": "Handlinger",
+        "save": "Lagre",
+        "delete": "Slett",
+        "add_to_shopping_list": "Legg til i handleliste",
+        "add_shopping": "Legg til handlelistevare",
+        "edit_shopping": "Rediger handlelistevare",
+        "shopping_items": "Handlelistevarer",
+        "no_shopping": "Ingen handlelistevarer ennå.",
+        "item": "Vare",
+        "completed": "Fullført",
+        "mark_completed": "Merk som fullført",
+        "yes": "Ja",
+        "no": "Nei",
+        "from_stock": "Fra lager",
+        "plain_text_hint": "Fritekstvarer trenger ikke finnes på lager.",
+    },
+}
+
+
+class KitchenIOModel(BaseModel):
+    @field_validator("name", "item", "amount", check_fields=False)
+    @classmethod
+    def strip_required_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Field must not be blank")
+        return stripped
+
+    @field_validator("description", check_fields=False)
+    @classmethod
+    def strip_optional_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class StockCreate(KitchenIOModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=1000)
+    amount: str = Field(min_length=1, max_length=100)
+
+
+class StockUpdate(StockCreate):
+    pass
+
+
+class StockItem(StockCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class ShoppingCreate(KitchenIOModel):
+    item: str = Field(min_length=1, max_length=200)
+    amount: str = Field(min_length=1, max_length=100)
+    stock_item_id: int | None = None
+
+
+class ShoppingUpdate(ShoppingCreate):
+    completed: bool = False
+
+
+class ShoppingItem(ShoppingUpdate):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+def normalize_language(lang: str | None) -> str:
+    return lang if lang in SUPPORTED_LANGUAGES else "en"
+
+
+def normalize_theme(theme: str | None) -> str:
+    return theme if theme in SUPPORTED_THEMES else "light"
+
+
+def dict_from_row(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    if "completed" in item:
+        item["completed"] = bool(item["completed"])
+    return item
+
+
+def init_db(db_path: Path) -> None:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS stock_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                amount TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS shopping_list_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                completed INTEGER NOT NULL DEFAULT 0,
+                stock_item_id INTEGER REFERENCES stock_items(id) ON DELETE SET NULL
+            )
+            """
+        )
+
+
+def get_connection(db_path: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
+    resolved_db = Path(db_path)
+    init_db(resolved_db)
+    app = FastAPI(
+        title="KitchenIO API",
+        description="Minimal stock and shopping list API for Home Assistant and Hermes Agent.",
+        version="0.1.0",
+    )
+    app.state.db_path = resolved_db
+    templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
+    app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
+
+    def db() -> sqlite3.Connection:
+        conn = get_connection(app.state.db_path)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/", response_class=HTMLResponse)
+    def home(
+        request: Request,
+        conn: sqlite3.Connection = Depends(db),
+        lang: str = Query(default="en"),
+        theme: str = Query(default="light"),
+    ) -> HTMLResponse:
+        current_lang = normalize_language(lang)
+        current_theme = normalize_theme(theme)
+        stock = [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
+        shopping = [
+            dict_from_row(row)
+            for row in conn.execute("SELECT * FROM shopping_list_items ORDER BY completed, item")
+        ]
+        return templates.TemplateResponse(
+            request,
+            "index.html",
+            {
+                "t": TRANSLATIONS[current_lang],
+                "lang": current_lang,
+                "theme": current_theme,
+                "stock_items": stock,
+                "shopping_items": shopping,
+            },
+        )
+
+    @app.get("/api/stock", response_model=list[StockItem])
+    def list_stock(conn: sqlite3.Connection = Depends(db)) -> list[dict[str, Any]]:
+        return [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
+
+    @app.post("/api/stock", response_model=StockItem, status_code=status.HTTP_201_CREATED)
+    def add_stock(payload: StockCreate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        cursor = conn.execute(
+            "INSERT INTO stock_items (name, description, amount) VALUES (?, ?, ?)",
+            (payload.name.strip(), payload.description.strip(), payload.amount.strip()),
+        )
+        conn.commit()
+        return get_stock_or_404(conn, cursor.lastrowid)
+
+    @app.put("/api/stock/{item_id}", response_model=StockItem)
+    def update_stock(item_id: int, payload: StockUpdate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        ensure_stock_exists(conn, item_id)
+        conn.execute(
+            "UPDATE stock_items SET name = ?, description = ?, amount = ? WHERE id = ?",
+            (payload.name.strip(), payload.description.strip(), payload.amount.strip(), item_id),
+        )
+        conn.commit()
+        return get_stock_or_404(conn, item_id)
+
+    @app.delete("/api/stock/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_stock(item_id: int, conn: sqlite3.Connection = Depends(db)) -> None:
+        ensure_stock_exists(conn, item_id)
+        conn.execute("DELETE FROM stock_items WHERE id = ?", (item_id,))
+        conn.commit()
+        return None
+
+    @app.post(
+        "/api/stock/{item_id}/add-to-shopping-list",
+        response_model=ShoppingItem,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def add_stock_to_shopping_list(item_id: int, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        stock = get_stock_or_404(conn, item_id)
+        cursor = conn.execute(
+            "INSERT INTO shopping_list_items (item, amount, completed, stock_item_id) VALUES (?, ?, 0, ?)",
+            (stock["name"], stock["amount"], item_id),
+        )
+        conn.commit()
+        return get_shopping_or_404(conn, cursor.lastrowid)
+
+    @app.get("/api/shopping-list", response_model=list[ShoppingItem])
+    def list_shopping(conn: sqlite3.Connection = Depends(db)) -> list[dict[str, Any]]:
+        return [
+            dict_from_row(row)
+            for row in conn.execute("SELECT * FROM shopping_list_items ORDER BY completed, item")
+        ]
+
+    @app.post(
+        "/api/shopping-list", response_model=ShoppingItem, status_code=status.HTTP_201_CREATED
+    )
+    def add_shopping(payload: ShoppingCreate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        if payload.stock_item_id is not None:
+            ensure_stock_exists(conn, payload.stock_item_id)
+        cursor = conn.execute(
+            """
+            INSERT INTO shopping_list_items (item, amount, completed, stock_item_id)
+            VALUES (?, ?, 0, ?)
+            """,
+            (payload.item.strip(), payload.amount.strip(), payload.stock_item_id),
+        )
+        conn.commit()
+        return get_shopping_or_404(conn, cursor.lastrowid)
+
+    @app.put("/api/shopping-list/{item_id}", response_model=ShoppingItem)
+    def update_shopping(item_id: int, payload: ShoppingUpdate, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        ensure_shopping_exists(conn, item_id)
+        if payload.stock_item_id is not None:
+            ensure_stock_exists(conn, payload.stock_item_id)
+        conn.execute(
+            """
+            UPDATE shopping_list_items
+            SET item = ?, amount = ?, completed = ?, stock_item_id = ?
+            WHERE id = ?
+            """,
+            (
+                payload.item.strip(),
+                payload.amount.strip(),
+                int(payload.completed),
+                payload.stock_item_id,
+                item_id,
+            ),
+        )
+        conn.commit()
+        return get_shopping_or_404(conn, item_id)
+
+    @app.delete("/api/shopping-list/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db)) -> None:
+        ensure_shopping_exists(conn, item_id)
+        conn.execute("DELETE FROM shopping_list_items WHERE id = ?", (item_id,))
+        conn.commit()
+        return None
+
+    @app.post("/api/shopping-list/{item_id}/complete", response_model=ShoppingItem)
+    def complete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db)) -> dict[str, Any]:
+        ensure_shopping_exists(conn, item_id)
+        conn.execute("UPDATE shopping_list_items SET completed = 1 WHERE id = ?", (item_id,))
+        conn.commit()
+        return get_shopping_or_404(conn, item_id)
+
+    @app.post("/ui/stock")
+    def ui_add_stock(
+        conn: sqlite3.Connection = Depends(db),
+        name: str = Form(...),
+        description: str = Form(""),
+        amount: str = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ) -> RedirectResponse:
+        add_stock(StockCreate(name=name, description=description, amount=amount), conn)
+        return redirect_home(lang, theme, "stock-panel")
+
+    @app.post("/ui/stock/{item_id}")
+    def ui_update_stock(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        name: str = Form(...),
+        description: str = Form(""),
+        amount: str = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ):
+        update_stock(item_id, StockUpdate(name=name, description=description, amount=amount), conn)
+        return redirect_home(lang, theme, "stock-panel")
+
+    @app.post("/ui/stock/{item_id}/delete")
+    def ui_delete_stock(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):
+        delete_stock(item_id, conn)
+        return redirect_home(lang, theme, "stock-panel")
+
+    @app.post("/ui/stock/{item_id}/shopping-list")
+    def ui_stock_to_shopping(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):
+        add_stock_to_shopping_list(item_id, conn)
+        return redirect_home(lang, theme, "shopping-panel")
+
+    @app.post("/ui/shopping-list")
+    def ui_add_shopping(
+        conn: sqlite3.Connection = Depends(db),
+        item: str = Form(...),
+        amount: str = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ) -> RedirectResponse:
+        add_shopping(ShoppingCreate(item=item, amount=amount), conn)
+        return redirect_home(lang, theme, "shopping-panel")
+
+    @app.post("/ui/shopping-list/{item_id}")
+    def ui_update_shopping(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        item: str = Form(...),
+        amount: str = Form(...),
+        completed: bool = Form(False),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ):
+        current = get_shopping_or_404(conn, item_id)
+        update_shopping(
+            item_id,
+            ShoppingUpdate(
+                item=item,
+                amount=amount,
+                completed=completed,
+                stock_item_id=current.get("stock_item_id"),
+            ),
+            conn,
+        )
+        return redirect_home(lang, theme, "shopping-panel")
+
+    @app.post("/ui/shopping-list/{item_id}/complete")
+    def ui_complete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):
+        complete_shopping(item_id, conn)
+        return redirect_home(lang, theme, "shopping-panel")
+
+    @app.post("/ui/shopping-list/{item_id}/delete")
+    def ui_delete_shopping(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):
+        delete_shopping(item_id, conn)
+        return redirect_home(lang, theme, "shopping-panel")
+
+    return app
+
+
+def redirect_home(lang: str, theme: str, fragment: str) -> RedirectResponse:
+    return RedirectResponse(
+        url=f"/?lang={normalize_language(lang)}&theme={normalize_theme(theme)}#{fragment}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+def ensure_stock_exists(conn: sqlite3.Connection, item_id: int) -> None:
+    get_stock_or_404(conn, item_id)
+
+
+def get_stock_or_404(conn: sqlite3.Connection, item_id: int | None) -> dict[str, Any]:
+    row = conn.execute("SELECT * FROM stock_items WHERE id = ?", (item_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stock item not found")
+    return dict_from_row(row)
+
+
+def ensure_shopping_exists(conn: sqlite3.Connection, item_id: int) -> None:
+    get_shopping_or_404(conn, item_id)
+
+
+def get_shopping_or_404(conn: sqlite3.Connection, item_id: int | None) -> dict[str, Any]:
+    row = conn.execute("SELECT * FROM shopping_list_items WHERE id = ?", (item_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shopping list item not found")
+    return dict_from_row(row)
+
+
+app = create_app()
