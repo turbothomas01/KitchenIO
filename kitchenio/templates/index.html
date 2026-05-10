@@ -25,27 +25,57 @@
 
     <section id="stock-panel" class="panel" role="tabpanel" aria-labelledby="stock-tab" tabindex="-1">
       <h2>{{ t.stock }}</h2>
-      <details id="add-stock" class="card">
-        <summary>+ {{ t.add_stock }}</summary>
-        <form method="post" action="/ui/stock" aria-labelledby="add-stock-heading">
-          <h3 id="add-stock-heading">{{ t.add_stock }}</h3>
-          <input type="hidden" name="lang" value="{{ lang }}">
-          <input type="hidden" name="theme" value="{{ theme }}">
-          <div>
-            <label for="stock-name">{{ t.name }}</label>
-            <input id="stock-name" name="name" autocomplete="off" required>
-          </div>
-          <div>
-            <label for="stock-description">{{ t.description }}</label>
-            <textarea id="stock-description" name="description" rows="3"></textarea>
-          </div>
-          <div>
-            <label for="stock-amount">{{ t.amount }}</label>
-            <input id="stock-amount" name="amount" autocomplete="off" required>
-          </div>
-          <button type="submit">{{ t.add_stock }}</button>
+      <button id="open-stock-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="stock-dialog">+ {{ t.add_stock }}</button>
+      <dialog id="stock-dialog" aria-labelledby="add-stock-heading">
+        <form method="dialog" class="dialog-close-form">
+          <button type="submit" value="cancel">{{ t.close }}</button>
         </form>
-      </details>
+        <h3 id="add-stock-heading">{{ t.add_stock }}</h3>
+        <div class="dialog-choices" aria-label="{{ t.add_stock }}">
+          <button type="button" data-dialog-panel="stock-create-panel">{{ t.create_stock_item }}</button>
+          <button type="button" data-dialog-panel="stock-bought-panel">{{ t.add_bought_stock }}</button>
+        </div>
+        <section id="stock-create-panel" class="dialog-panel">
+          <h4>{{ t.create_stock_item }}</h4>
+          <form method="post" action="/ui/stock" aria-label="{{ t.create_stock_item }}">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <input type="hidden" name="theme" value="{{ theme }}">
+            <div>
+              <label for="stock-name">{{ t.name }}</label>
+              <input id="stock-name" name="name" autocomplete="off" required>
+            </div>
+            <div>
+              <label for="stock-description">{{ t.description }}</label>
+              <textarea id="stock-description" name="description" rows="3"></textarea>
+            </div>
+            <div>
+              <label for="stock-amount">{{ t.amount }}</label>
+              <input id="stock-amount" name="amount" autocomplete="off" required>
+            </div>
+            <button type="submit">{{ t.add_stock }}</button>
+          </form>
+        </section>
+        <section id="stock-bought-panel" class="dialog-panel" hidden>
+          <h4>{{ t.add_bought_stock }}</h4>
+          <form method="post" action="/ui/stock" aria-label="{{ t.add_bought_stock }}">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <input type="hidden" name="theme" value="{{ theme }}">
+            <div>
+              <label for="bought-stock-name">{{ t.name }}</label>
+              <input id="bought-stock-name" name="name" autocomplete="off" required>
+            </div>
+            <div>
+              <label for="bought-stock-description">{{ t.description }}</label>
+              <textarea id="bought-stock-description" name="description" rows="3"></textarea>
+            </div>
+            <div>
+              <label for="bought-stock-amount">{{ t.amount }}</label>
+              <input id="bought-stock-amount" name="amount" autocomplete="off" required>
+            </div>
+            <button type="submit">{{ t.add_bought_stock }}</button>
+          </form>
+        </section>
+      </dialog>
 
       <h3>{{ t.stock_items }}</h3>
       {% if stock_items %}
@@ -92,8 +122,11 @@
 
     <section id="shopping-panel" class="panel" role="tabpanel" aria-labelledby="shopping-tab" tabindex="-1">
       <h2>{{ t.shopping_list }}</h2>
-      <details id="add-shopping" class="card">
-        <summary>+ {{ t.add_shopping }}</summary>
+      <button id="open-shopping-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="shopping-dialog">+ {{ t.add_shopping }}</button>
+      <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading">
+        <form method="dialog" class="dialog-close-form">
+          <button type="submit" value="cancel">{{ t.close }}</button>
+        </form>
         <form method="post" action="/ui/shopping-list" aria-labelledby="add-shopping-heading">
           <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
           <p>{{ t.plain_text_hint }}</p>
@@ -109,7 +142,7 @@
           </div>
           <button type="submit">{{ t.add_shopping }}</button>
         </form>
-      </details>
+      </dialog>
 
       <h3>{{ t.shopping_items }}</h3>
       {% if shopping_items %}

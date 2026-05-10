@@ -93,19 +93,44 @@ main {
 
 .card,
 .edit-form,
-details.card > form {
+.dialog-panel form {
   display: grid;
   gap: 0.75rem;
   max-width: 42rem;
 }
 
-details.card > form {
-  margin-top: 1rem;
+dialog {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 1rem;
+  color: var(--text);
+  max-width: min(42rem, calc(100% - 2rem));
+  padding: 1.25rem;
+  width: 100%;
 }
 
-summary {
-  cursor: pointer;
-  font-weight: 800;
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.dialog-close-form {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.dialog-panel[hidden] {
+  display: none;
+}
+
+.add-button {
+  margin-block: 0.5rem 1rem;
 }
 
 .notice {

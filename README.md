@@ -21,6 +21,7 @@ It is similar in concept to Grocy, but deliberately minimal. There are no recipe
 - Optional API key protection for integrations: once a key exists, API calls require it.
 - SQLite storage.
 - REST API for Home Assistant, Hermes Agent, scripts, and automations.
+- Accessible modal add screens opened from `+` buttons for Stock and Shopping List.
 - Docker and Docker Compose support.
 - Basic automated tests.
 

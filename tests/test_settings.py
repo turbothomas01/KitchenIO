@@ -33,22 +33,40 @@ def test_settings_page_persists_default_language_and_theme(tmp_path: Path):
     assert "Handleliste" in home.text
 
 
-def test_home_uses_plus_controls_instead_of_always_visible_add_forms(tmp_path: Path):
+def test_home_uses_plus_buttons_that_open_accessible_add_dialogs(tmp_path: Path):
     client = make_client(tmp_path)
 
     response = client.get("/")
     assert response.status_code == 200
     soup = BeautifulSoup(response.text, "html.parser")
 
-    add_stock_details = soup.find("details", attrs={"id": "add-stock"})
-    assert add_stock_details is not None
-    assert add_stock_details.find("summary").get_text(strip=True).startswith("+")
-    assert add_stock_details.find("form", attrs={"action": "/ui/stock"}) is not None
+    add_stock_button = soup.find("button", attrs={"id": "open-stock-dialog"})
+    assert add_stock_button is not None
+    assert add_stock_button.get_text(strip=True).startswith("+")
+    assert add_stock_button["aria-haspopup"] == "dialog"
+    assert add_stock_button["aria-controls"] == "stock-dialog"
 
-    add_shopping_details = soup.find("details", attrs={"id": "add-shopping"})
-    assert add_shopping_details is not None
-    assert add_shopping_details.find("summary").get_text(strip=True).startswith("+")
-    assert add_shopping_details.find("form", attrs={"action": "/ui/shopping-list"}) is not None
+    stock_dialog = soup.find("dialog", attrs={"id": "stock-dialog", "aria-labelledby": "add-stock-heading"})
+    assert stock_dialog is not None
+    assert stock_dialog.find("form", attrs={"action": "/ui/stock"}) is not None
+    choices = stock_dialog.find("div", attrs={"class": "dialog-choices"})
+    assert choices is not None
+    assert choices.find("button", attrs={"data-dialog-panel": "stock-create-panel"}) is not None
+    assert choices.find("button", attrs={"data-dialog-panel": "stock-bought-panel"}) is not None
+    assert stock_dialog.find(id="stock-create-panel") is not None
+    assert stock_dialog.find(id="stock-bought-panel") is not None
+    assert stock_dialog.find("button", attrs={"value": "cancel"}) is not None
+
+    add_shopping_button = soup.find("button", attrs={"id": "open-shopping-dialog"})
+    assert add_shopping_button is not None
+    assert add_shopping_button.get_text(strip=True).startswith("+")
+    assert add_shopping_button["aria-haspopup"] == "dialog"
+    assert add_shopping_button["aria-controls"] == "shopping-dialog"
+
+    shopping_dialog = soup.find("dialog", attrs={"id": "shopping-dialog", "aria-labelledby": "add-shopping-heading"})
+    assert shopping_dialog is not None
+    assert shopping_dialog.find("form", attrs={"action": "/ui/shopping-list"}) is not None
+    assert shopping_dialog.find("button", attrs={"value": "cancel"}) is not None
 
 
 def test_api_key_creation_shows_key_once_and_secures_api(tmp_path: Path):

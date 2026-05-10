@@ -23,7 +23,7 @@ function tabForCurrentHash(tabs) {
   return tabs.find((tab) => tab.getAttribute('aria-controls') === panelId) || tabs[0];
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function setupTabs() {
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
   if (tabs.length === 0) {
     return;
@@ -59,4 +59,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   activateTab(tabForCurrentHash(tabs));
+}
+
+function setupDialogs() {
+  document.querySelectorAll('[aria-haspopup="dialog"][aria-controls]').forEach((button) => {
+    const dialog = document.getElementById(button.getAttribute('aria-controls'));
+    if (!dialog) return;
+
+    button.addEventListener('click', () => {
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
+      const firstInput = dialog.querySelector('input:not([type="hidden"]), textarea, select, button');
+      if (firstInput) firstInput.focus();
+    });
+  });
+
+  document.querySelectorAll('[data-dialog-panel]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const dialog = button.closest('dialog');
+      if (!dialog) return;
+      dialog.querySelectorAll('.dialog-panel').forEach((panel) => {
+        panel.hidden = panel.id !== button.dataset.dialogPanel;
+      });
+      const panel = document.getElementById(button.dataset.dialogPanel);
+      const firstInput = panel?.querySelector('input:not([type="hidden"]), textarea, select, button');
+      if (firstInput) firstInput.focus();
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupTabs();
+  setupDialogs();
 });
