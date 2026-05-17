@@ -24,6 +24,12 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert all(tab.has_attr("aria-controls") for tab in tabs)
     assert all(tab.has_attr("aria-selected") for tab in tabs)
     assert soup.find("a", href="/settings") is not None
+    assert soup.select_one("header.site-header .header-title-row > a.settings-icon[href='/settings']") is not None
+    stylesheet = soup.find("link", rel="stylesheet")
+    assert stylesheet is not None
+    assert "styles.css?v=" in stylesheet["href"]
+    assert soup.find("section", id="stock-panel").find("h2") is None
+    assert soup.find("section", id="shopping-panel").find("h2") is None
 
     forms = soup.find_all("form")
     assert forms
@@ -47,4 +53,20 @@ def test_norwegian_ui_text_is_available(tmp_path: Path):
     assert response.status_code == 200
     assert 'lang="no"' in response.text
     assert "Handleliste" in response.text
-    assert "Legg til i lager" in response.text
+    assert "Fyll på lager" in response.text
+
+
+def test_mobile_header_tabs_and_stock_counter_styles_are_present():
+    styles = Path("kitchenio/static/styles.css").read_text()
+
+    assert '.tabs [role="tablist"]' in styles
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in styles
+    assert '  .tabs [role="tab"] {' in styles
+    assert "width: 100%;" in styles
+    assert ".add-button" in styles
+    assert "position: fixed;" in styles
+    assert "right: max(1rem, env(safe-area-inset-right));" in styles
+    assert "bottom: max(1rem, env(safe-area-inset-bottom));" in styles
+    assert ".stock-counter-card" in styles
+    assert "grid-template-columns: auto minmax(0, 1fr) auto;" in styles
+    assert "@media (max-width: 44rem) {\n  .site-header," not in styles

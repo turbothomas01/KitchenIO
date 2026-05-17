@@ -41,6 +41,63 @@
       </form>
     </section>
 
+    <section class="card" aria-labelledby="stock-database-heading">
+      <h2 id="stock-database-heading">{{ t.stock_database }}</h2>
+      <p>{{ t.stock_database_intro }}</p>
+      <form method="post" action="/ui/stock" aria-label="{{ t.create_stock_item }}">
+        <div>
+          <label for="stock-name">{{ t.name }}</label>
+          <input id="stock-name" name="name" autocomplete="off" required>
+        </div>
+        <div>
+          <label for="stock-description">{{ t.description }}</label>
+          <textarea id="stock-description" name="description" rows="3"></textarea>
+        </div>
+        <div>
+          <label for="stock-amount">{{ t.amount }}</label>
+          <input id="stock-amount" name="amount" autocomplete="off" required>
+        </div>
+        <button type="submit">{{ t.create_stock_item }}</button>
+      </form>
+
+      <h3>{{ t.stock_items }}</h3>
+      {% if stock_items %}
+        <ul class="item-list" aria-label="{{ t.stock_items }}">
+        {% for item in stock_items %}
+          <li class="item-card">
+            <form method="post" action="/ui/stock/{{ item.id }}" class="edit-form" aria-labelledby="settings-stock-item-{{ item.id }}">
+              <h4 id="settings-stock-item-{{ item.id }}">{{ t.edit_stock }}: {{ item.name }}</h4>
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="return_to" value="settings">
+              <div>
+                <label for="settings-stock-name-{{ item.id }}">{{ t.name }}</label>
+                <input id="settings-stock-name-{{ item.id }}" name="name" value="{{ item.name }}" required>
+              </div>
+              <div>
+                <label for="settings-stock-description-{{ item.id }}">{{ t.description }}</label>
+                <textarea id="settings-stock-description-{{ item.id }}" name="description" rows="2">{{ item.description }}</textarea>
+              </div>
+              <div>
+                <label for="settings-stock-amount-{{ item.id }}">{{ t.amount }}</label>
+                <input id="settings-stock-amount-{{ item.id }}" name="amount" value="{{ item.amount }}" required>
+              </div>
+              <button type="submit">{{ t.save }}</button>
+            </form>
+            <form method="post" action="/ui/stock/{{ item.id }}/delete">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="return_to" value="settings">
+              <button type="submit">{{ t.delete }}</button>
+            </form>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>{{ t.no_stock }}</p>
+      {% endif %}
+    </section>
+
     <section class="card" aria-labelledby="api-keys-heading">
       <h2 id="api-keys-heading">{{ t.api_keys }}</h2>
       <p>{{ t.api_key_intro }}</p>

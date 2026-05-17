@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import secrets
 import sqlite3
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
 SUPPORTED_LANGUAGES = {"en", "no"}
 SUPPORTED_THEMES = {"light", "dark"}
+SAFE_STOCK_COUNT_RE = re.compile(r"^[+-]?\d{1,6}(?:[,.]\d{1,3})?$")
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "en": {
@@ -51,11 +54,20 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shopping_list": "Shopping List",
         "add_stock": "Add to stock",
         "create_stock_item": "Create stock database item",
-        "add_bought_stock": "Add bought item to stock",
+        "add_bought_stock": "Refill existing stock item",
         "close": "Close",
         "edit_stock": "Edit stock item",
-        "stock_items": "Stock items",
-        "no_stock": "No stock items yet.",
+        "stock_items": "In stock",
+        "no_stock": "No items are currently in stock.",
+        "stock_database": "Stock database",
+        "stock_database_intro": "Create new stock database items here. The front page + button only refills items that already exist.",
+        "select_stock_item": "Stock item",
+        "refill_amount": "New stock amount",
+        "no_stock_for_refill": "All stock database items are already in stock, or no stock database items exist yet.",
+        "increase_stock": "Increase stock",
+        "decrease_stock": "Decrease stock",
+        "in_stock_count": "In stock",
+        "settings_icon_label": "Open settings",
         "name": "Name",
         "description": "Description",
         "amount": "Amount",
@@ -104,13 +116,22 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "apply": "Bruk",
         "stock": "Lager",
         "shopping_list": "Handleliste",
-        "add_stock": "Legg til i lager",
+        "add_stock": "Fyll på lager",
         "create_stock_item": "Opprett vare i lagerdatabasen",
-        "add_bought_stock": "Legg inn kjøpt vare på lager",
+        "add_bought_stock": "Fyll på eksisterende lagervare",
         "close": "Lukk",
         "edit_stock": "Rediger lagervare",
-        "stock_items": "Lagervarer",
-        "no_stock": "Ingen lagervarer ennå.",
+        "stock_items": "På lager",
+        "no_stock": "Ingen varer er på lager akkurat nå.",
+        "stock_database": "Lagerdatabase",
+        "stock_database_intro": "Opprett nye lagervarer her. Plussknappen på forsiden fyller bare på varer som allerede finnes.",
+        "select_stock_item": "Lagervare",
+        "refill_amount": "Ny lagermengde",
+        "no_stock_for_refill": "Alle lagervarer er allerede på lager, eller ingen lagervarer finnes ennå.",
+        "increase_stock": "Øk lager",
+        "decrease_stock": "Reduser lager",
+        "in_stock_count": "På lager",
+        "settings_icon_label": "Åpne innstillinger",
         "name": "Navn",
         "description": "Beskrivelse",
         "amount": "Mengde",
@@ -184,6 +205,34 @@ def normalize_language(lang: str | None) -> str:
 
 def normalize_theme(theme: str | None) -> str:
     return theme if theme in SUPPORTED_THEMES else "light"
+
+
+def parse_stock_count(amount: str | int | float | Decimal | None) -> Decimal | None:
+    if amount is None:
+        return Decimal("0")
+    text = str(amount).strip()
+    if not text:
+        return Decimal("0")
+    first_token = text.split(maxsplit=1)[0]
+    if not SAFE_STOCK_COUNT_RE.fullmatch(first_token):
+        return None
+    count = Decimal(first_token.replace(",", "."))
+    return count if count.is_finite() else None
+
+
+def format_stock_count(amount: Decimal) -> str:
+    if amount == amount.to_integral_value():
+        return str(int(amount))
+    return format(amount.normalize(), "f")
+
+
+def enrich_stock_item(item: dict[str, Any]) -> dict[str, Any]:
+    count = parse_stock_count(item.get("amount"))
+    enriched = dict(item)
+    enriched["stock_count"] = str(item.get("amount") or "0") if count is None else format_stock_count(count)
+    enriched["stock_count_is_numeric"] = count is not None
+    enriched["is_in_stock"] = count is None or count > 0
+    return enriched
 
 
 def dict_from_row(row: sqlite3.Row) -> dict[str, Any]:
@@ -336,6 +385,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
     )
     app.state.db_path = resolved_db
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
+    asset_version = int((PACKAGE_DIR / "static" / "styles.css").stat().st_mtime)
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
 
     def db() -> sqlite3.Connection:
@@ -375,7 +425,9 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         persisted_settings = get_settings(conn)
         current_lang = normalize_language(lang or persisted_settings["language"])
         current_theme = normalize_theme(theme or persisted_settings["theme"])
-        stock = [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
+        stock = [enrich_stock_item(dict_from_row(row)) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
+        in_stock_items = [item for item in stock if item["is_in_stock"]]
+        refill_items = [item for item in stock if not item["is_in_stock"]]
         shopping = [
             dict_from_row(row)
             for row in conn.execute("SELECT * FROM shopping_list_items ORDER BY completed, item")
@@ -387,8 +439,10 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "t": TRANSLATIONS[current_lang],
                 "lang": current_lang,
                 "theme": current_theme,
-                "stock_items": stock,
+                "stock_items": in_stock_items,
+                "refill_items": refill_items,
                 "shopping_items": shopping,
+                "asset_version": asset_version,
             },
         )
 
@@ -409,6 +463,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "theme": persisted_settings["theme"],
                 "settings": persisted_settings,
                 "api_keys": list_api_keys(conn),
+                "stock_items": [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")],
                 "has_api_keys": any_api_keys(conn),
                 "new_api_key": None,
                 "saved": saved,
@@ -449,6 +504,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "theme": persisted_settings["theme"],
                 "settings": persisted_settings,
                 "api_keys": list_api_keys(conn),
+                "stock_items": [dict_from_row(row) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")],
                 "has_api_keys": any_api_keys(conn),
                 "new_api_key": new_api_key,
                 "saved": False,
@@ -605,10 +661,50 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         name: str = Form(...),
         description: str = Form(""),
         amount: str = Form(...),
+    ) -> RedirectResponse:
+        add_stock(StockCreate(name=name, description=description, amount=amount), conn)
+        return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
+
+    @app.post("/ui/stock/refill")
+    def ui_refill_stock(
+        conn: sqlite3.Connection = Depends(db),
+        stock_item_id: int = Form(...),
+        amount: str = Form(...),
         lang: str = Form("en"),
         theme: str = Form("light"),
     ) -> RedirectResponse:
-        add_stock(StockCreate(name=name, description=description, amount=amount), conn)
+        current = get_stock_or_404(conn, stock_item_id)
+        update_stock(
+            stock_item_id,
+            StockUpdate(name=current["name"], description=current["description"], amount=amount),
+            conn,
+        )
+        return redirect_home(lang, theme, "stock-panel")
+
+    @app.post("/ui/stock/{item_id}/adjust")
+    def ui_adjust_stock(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        delta: int = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ) -> RedirectResponse:
+        current = get_stock_or_404(conn, item_id)
+        if delta not in {-1, 1}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="delta must be -1 or 1")
+        current_count = parse_stock_count(current["amount"])
+        if current_count is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="stock amount is not numeric")
+        next_count = max(Decimal("0"), current_count + Decimal(delta))
+        update_stock(
+            item_id,
+            StockUpdate(
+                name=current["name"],
+                description=current["description"],
+                amount=format_stock_count(next_count),
+            ),
+            conn,
+        )
         return redirect_home(lang, theme, "stock-panel")
 
     @app.post("/ui/stock/{item_id}")
@@ -620,13 +716,24 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         amount: str = Form(...),
         lang: str = Form("en"),
         theme: str = Form("light"),
+        return_to: str = Form("home"),
     ):
         update_stock(item_id, StockUpdate(name=name, description=description, amount=amount), conn)
+        if return_to == "settings":
+            return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
         return redirect_home(lang, theme, "stock-panel")
 
     @app.post("/ui/stock/{item_id}/delete")
-    def ui_delete_stock(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):
+    def ui_delete_stock(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+        return_to: str = Form("home"),
+    ):
         delete_stock(item_id, conn)
+        if return_to == "settings":
+            return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
         return redirect_home(lang, theme, "stock-panel")
 
     @app.post("/ui/stock/{item_id}/shopping-list")
