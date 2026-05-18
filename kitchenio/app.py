@@ -468,6 +468,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "new_api_key": None,
                 "saved": saved,
                 "masked_key_label": masked_key_label(),
+                "asset_version": asset_version,
             },
         )
 
@@ -509,6 +510,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "new_api_key": new_api_key,
                 "saved": False,
                 "masked_key_label": masked_key_label(),
+                "asset_version": asset_version,
             },
         )
 

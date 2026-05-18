@@ -20,6 +20,9 @@ def test_settings_page_persists_default_language_and_theme(tmp_path: Path):
     assert soup.find("h1", string="Settings") is not None
     assert soup.find("label", attrs={"for": "settings-language"}) is not None
     assert soup.find("label", attrs={"for": "settings-theme"}) is not None
+    stylesheet = soup.find("link", rel="stylesheet")
+    assert stylesheet is not None
+    assert "styles.css?v=" in stylesheet["href"]
     assert soup.find("section", attrs={"aria-labelledby": "stock-database-heading"}) is not None
     assert soup.find("section", attrs={"aria-labelledby": "api-keys-heading"}) is not None
 
