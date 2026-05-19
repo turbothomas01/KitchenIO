@@ -28,8 +28,12 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     stylesheet = soup.find("link", rel="stylesheet")
     assert stylesheet is not None
     assert "styles.css?v=" in stylesheet["href"]
-    assert soup.find("section", id="stock-panel").find("h2") is None
-    assert soup.find("section", id="shopping-panel").find("h2") is None
+    stock_panel = soup.find("section", id="stock-panel")
+    shopping_panel = soup.find("section", id="shopping-panel")
+    assert stock_panel.find("h2") is None
+    assert shopping_panel.find("h2") is None
+    assert not stock_panel.has_attr("hidden")
+    assert shopping_panel.has_attr("hidden")
 
     forms = soup.find_all("form")
     assert forms
