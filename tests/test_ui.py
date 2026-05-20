@@ -1,9 +1,10 @@
+import os
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 from fastapi.testclient import TestClient
 
-from kitchenio.app import create_app
+from kitchenio.app import create_app, static_asset_version
 
 
 def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: Path):
@@ -28,6 +29,9 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     stylesheet = soup.find("link", rel="stylesheet")
     assert stylesheet is not None
     assert "styles.css?v=" in stylesheet["href"]
+    tab_script = soup.find("script", src=lambda src: src and "tabs.js" in src)
+    assert tab_script is not None
+    assert "tabs.js?v=" in tab_script["src"]
     stock_panel = soup.find("section", id="stock-panel")
     shopping_panel = soup.find("section", id="shopping-panel")
     assert stock_panel.find("h2") is None
@@ -48,6 +52,35 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert buttons
     for button in buttons:
         assert button.get_text(strip=True) or button.get("aria-label")
+
+
+def test_static_asset_version_changes_when_script_is_newer(tmp_path: Path):
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    stylesheet = static_dir / "styles.css"
+    tab_script = static_dir / "tabs.js"
+    stylesheet.write_text("body {}", encoding="utf-8")
+    tab_script.write_text("console.log('tabs')", encoding="utf-8")
+    older = 1_700_000_000_000_000_000
+    newer = older + 30
+
+    os.utime(stylesheet, ns=(older, older))
+    os.utime(tab_script, ns=(newer, newer))
+
+    assert static_asset_version(static_dir) == newer
+
+
+def test_static_asset_version_reports_missing_asset(tmp_path: Path):
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    (static_dir / "styles.css").write_text("body {}", encoding="utf-8")
+
+    try:
+        static_asset_version(static_dir)
+    except RuntimeError as exc:
+        assert "tabs.js" in str(exc)
+    else:
+        raise AssertionError("expected RuntimeError for missing static asset")
 
 
 def test_norwegian_ui_text_is_available(tmp_path: Path):

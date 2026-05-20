@@ -21,6 +21,18 @@ DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
 SUPPORTED_LANGUAGES = {"en", "no"}
 SUPPORTED_THEMES = {"light", "dark"}
 SAFE_STOCK_COUNT_RE = re.compile(r"^[+-]?\d{1,6}(?:[,.]\d{1,3})?$")
+STATIC_ASSETS = ("styles.css", "tabs.js")
+
+
+def static_asset_version(static_dir: Path) -> int:
+    mtimes = []
+    for asset in STATIC_ASSETS:
+        asset_path = static_dir / asset
+        try:
+            mtimes.append(asset_path.stat().st_mtime_ns)
+        except OSError as exc:
+            raise RuntimeError(f"Unable to read static asset for cache busting: {asset}") from exc
+    return int(max(mtimes))
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "en": {
@@ -385,7 +397,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
     )
     app.state.db_path = resolved_db
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
-    asset_version = int((PACKAGE_DIR / "static" / "styles.css").stat().st_mtime)
+    asset_version = static_asset_version(PACKAGE_DIR / "static")
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
 
     def db() -> sqlite3.Connection:
