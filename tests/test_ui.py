@@ -39,6 +39,11 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert not stock_panel.has_attr("hidden")
     assert shopping_panel.has_attr("hidden")
 
+    stock_dialog = soup.find("dialog", id="stock-dialog")
+    shopping_dialog = soup.find("dialog", id="shopping-dialog")
+    assert stock_dialog["aria-modal"] == "true"
+    assert shopping_dialog["aria-modal"] == "true"
+
     forms = soup.find_all("form")
     assert forms
     for field in soup.find_all(["input", "textarea", "select"]):

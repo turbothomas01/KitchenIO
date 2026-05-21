@@ -27,7 +27,7 @@
 
     <section id="stock-panel" class="panel" role="tabpanel" aria-labelledby="stock-tab" tabindex="-1">
       <button id="open-stock-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="stock-dialog">+ {{ t.add_stock }}</button>
-      <dialog id="stock-dialog" aria-labelledby="add-stock-heading">
+      <dialog id="stock-dialog" aria-labelledby="add-stock-heading" aria-modal="true">
         <form method="dialog" class="dialog-close-form">
           <button type="submit" value="cancel">{{ t.close }}</button>
         </form>
@@ -96,7 +96,7 @@
 
     <section id="shopping-panel" class="panel" role="tabpanel" aria-labelledby="shopping-tab" tabindex="-1" hidden>
       <button id="open-shopping-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="shopping-dialog">+ {{ t.add_shopping }}</button>
-      <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading">
+      <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading" aria-modal="true">
         <form method="dialog" class="dialog-close-form">
           <button type="submit" value="cancel">{{ t.close }}</button>
         </form>
