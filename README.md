@@ -21,6 +21,9 @@ It is similar in concept to Grocy, but deliberately minimal. There are no recipe
 - Optional API key protection for integrations: once a key exists, API calls require it.
 - SQLite storage.
 - REST API for Home Assistant, Hermes Agent, scripts, and automations.
+- Home Assistant custom integration under `custom_components/kitchenio`.
+- Home Assistant stock display via one summary sensor instead of one entity per item.
+- Shopping-list actions can use the default Home Assistant `todo.shopping_list`.
 - Accessible modal add screens opened from `+` buttons for Stock and Shopping List.
 - Docker and Docker Compose support.
 - Basic automated tests.
@@ -112,6 +115,18 @@ or:
 ```http
 Authorization: Bearer kio_your_key_here
 ```
+
+## Home Assistant integration
+
+The repository includes a HACS-compatible custom integration in `custom_components/kitchenio`.
+
+Recommended display:
+
+- Use `sensor.kitchenio_stock` as a single stock summary sensor.
+- Use the sensor's `items`, `low_stock_items`, and `stock_table` attributes for dashboard cards and automations.
+- Keep shopping in Home Assistant's built-in list, `todo.shopping_list`, instead of managing a second list.
+
+Full setup instructions are in [`docs/home-assistant.md`](docs/home-assistant.md).
 
 ## Accessibility notes
 

@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect KitchenIO",
+        "description": "Connect to your local KitchenIO server.",
+        "data": {
+          "name": "Name",
+          "url": "KitchenIO URL",
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to KitchenIO. Check the URL and API key."
+    },
+    "abort": {
+      "already_configured": "KitchenIO is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "stock": {
+        "name": "Stock"
+      }
+    }
+  }
+}
