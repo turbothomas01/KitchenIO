@@ -359,7 +359,6 @@ a:focus {
 
 @media (max-width: 44rem) {
   .item-card,
-  .shopping-counter-row,
   .preferences {
     display: block;
   }
@@ -383,7 +382,8 @@ a:focus {
 
   .add-button {
     margin: 0;
-    width: 4rem;
+    min-width: 7rem;
+    width: auto;
   }
 
   .stock-counter-action button {

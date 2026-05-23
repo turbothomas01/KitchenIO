@@ -146,3 +146,11 @@ def test_shopping_list_amount_can_be_adjusted_with_plus_and_minus(tmp_path: Path
     decreased = client.post(f"/ui/shopping-list/{item_id}/adjust", data={"delta": "-1"}, follow_redirects=False)
     assert decreased.status_code == 303
     assert client.get("/api/shopping-list").json()[0]["amount"] == "2"
+
+
+def test_shopping_counter_rows_stay_horizontal_on_mobile():
+    styles = (Path(__file__).resolve().parents[1] / "kitchenio" / "static" / "styles.css").read_text(encoding="utf-8")
+
+    mobile_section = styles.split("@media (max-width: 44rem)", 1)[1]
+    assert ".shopping-counter-row," not in mobile_section
+    assert "grid-template-columns: auto minmax(0, 1fr) auto auto auto;" in styles
