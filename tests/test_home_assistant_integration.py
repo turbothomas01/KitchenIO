@@ -16,6 +16,20 @@ def test_home_assistant_manifest_is_config_flow_ready():
     assert manifest["iot_class"] == "local_polling"
 
 
+def test_home_assistant_integration_includes_logo_assets():
+    for asset_name in ("icon.png", "logo.png"):
+        asset = INTEGRATION / asset_name
+        assert asset.exists(), f"missing HA integration logo asset: {asset_name}"
+        assert asset.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_github_readme_shows_logo():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/assets/kitchenio-logo.png" in readme
+    assert "alt=\"KitchenIO logo\"" in readme
+
+
 def test_products_are_displayed_as_one_summary_sensor_with_items_attribute():
     sensor = (INTEGRATION / "sensor.py").read_text(encoding="utf-8")
     coordinator = (INTEGRATION / "coordinator.py").read_text(encoding="utf-8")

@@ -1,5 +1,9 @@
 # KitchenIO
 
+<p align="center">
+  <img src="docs/assets/kitchenio-logo.png" alt="KitchenIO logo" width="220">
+</p>
+
 KitchenIO is a small self-hosted grocery list service. Version 1 is intentionally focused on two simple lists: products at home and the shopping list.
 
 It is similar in concept to Grocy, but intentionally simpler for daily use.
