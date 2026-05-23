@@ -40,7 +40,7 @@
 
     <dialog id="product-dialog" aria-labelledby="add-product-heading" aria-modal="true">
       <form method="dialog" class="dialog-close-form">
-        <button type="submit" value="cancel">{{ t.close }}</button>
+        <button type="submit" value="cancel" aria-label="{{ t.close }}" title="{{ t.close }}">×</button>
       </form>
       <form method="post" action="/ui/stock" aria-labelledby="add-product-heading">
         <h3 id="add-product-heading">{{ t.add_product }}</h3>
@@ -54,7 +54,7 @@
         </div>
         <div>
           <label for="product-amount">{{ t.amount }}</label>
-          <input id="product-amount" name="amount" autocomplete="off" value="1" required>
+          <input id="product-amount" name="amount" type="number" inputmode="numeric" min="1" step="1" autocomplete="off" value="1" required>
         </div>
         <button type="submit">{{ t.add_product }}</button>
       </form>
@@ -62,7 +62,7 @@
 
     <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading" aria-modal="true">
       <form method="dialog" class="dialog-close-form">
-        <button type="submit" value="cancel">{{ t.close }}</button>
+        <button type="submit" value="cancel" aria-label="{{ t.close }}" title="{{ t.close }}">×</button>
       </form>
       <form method="post" action="/ui/shopping-list" aria-labelledby="add-shopping-heading">
         <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
@@ -75,7 +75,7 @@
         </div>
         <div>
           <label for="shopping-amount">{{ t.amount }}</label>
-          <input id="shopping-amount" name="amount" autocomplete="off" value="1" required>
+          <input id="shopping-amount" name="amount" type="number" inputmode="numeric" min="1" step="1" autocomplete="off" value="1" required>
         </div>
         <button type="submit">{{ t.add_shopping }}</button>
       </form>

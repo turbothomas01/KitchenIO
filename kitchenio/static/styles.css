@@ -231,11 +231,15 @@ dialog form:not(.dialog-close-form) button[type="submit"] {
   border-radius: 999px;
   color: var(--muted);
   display: inline-flex;
-  font-size: 0.9rem;
+  font-size: 1.35rem;
+  font-weight: 500;
+  height: 2.4rem;
+  justify-content: center;
   line-height: 1;
-  min-height: 2.25rem;
-  padding: 0.45rem 0.75rem;
-  width: auto;
+  min-height: 2.4rem;
+  min-width: 2.4rem;
+  padding: 0;
+  width: 2.4rem;
 }
 
 .dialog-close-form button:hover,

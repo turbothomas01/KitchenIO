@@ -51,6 +51,18 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     shopping_dialog = soup.find("dialog", id="shopping-dialog")
     assert shopping_dialog["aria-modal"] == "true"
 
+    for dialog in (product_dialog, shopping_dialog):
+        close_button = dialog.select_one(".dialog-close-form button")
+        assert close_button is not None
+        assert close_button["aria-label"] == "Close"
+        assert close_button.get_text(strip=True) == "×"
+        amount_input = dialog.select_one("input[name='amount']")
+        assert amount_input is not None
+        assert amount_input["type"] == "number"
+        assert amount_input["inputmode"] == "numeric"
+        assert amount_input["min"] == "1"
+        assert amount_input["step"] == "1"
+
     forms = soup.find_all("form")
     assert forms
     for field in soup.find_all(["input", "textarea", "select"]):
