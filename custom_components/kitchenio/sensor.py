@@ -90,7 +90,7 @@ def _stock_table(items: list[dict[str, Any]]) -> str:
         return "No KitchenIO stock items are currently in stock."
     lines = ["| Item | Amount |", "| --- | ---: |"]
     for item in sorted(items, key=lambda row: row["name"].casefold()):
-        name = item["name"].replace("|", "\|")
-        amount = item["amount"].replace("|", "\|")
+        name = item["name"].replace("|", "\\|")
+        amount = item["amount"].replace("|", "\\|")
         lines.append(f"| {name} | {amount} |")
     return "\n".join(lines)
