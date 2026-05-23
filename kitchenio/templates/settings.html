@@ -7,30 +7,37 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v={{ asset_version }}">
 </head>
 <body data-theme="{{ theme }}">
-  <header class="site-header">
-    <div>
+  <header class="site-header settings-hero">
+    <div class="settings-hero-copy">
+      <p class="settings-eyebrow">{{ t.app_name }}</p>
       <h1>{{ t.settings }}</h1>
       <p>{{ t.settings_intro }}</p>
-      <a href="/">{{ t.back_home }}</a>
     </div>
+    <a class="settings-back-link" href="/">{{ t.back_home }}</a>
   </header>
 
-  <main>
+  <main class="settings-shell">
     {% if saved %}
       <p role="status" class="notice">{{ t.saved }}</p>
     {% endif %}
 
-    <section class="card" aria-labelledby="preferences-heading">
-      <h2 id="preferences-heading">{{ t.preferences }}</h2>
-      <form method="post" action="/settings">
+    <div class="settings-grid">
+    <section class="settings-panel" aria-labelledby="preferences-heading">
+      <div class="settings-card-header">
         <div>
+          <p class="settings-eyebrow">Display</p>
+          <h2 id="preferences-heading">{{ t.preferences }}</h2>
+        </div>
+      </div>
+      <form class="settings-form" method="post" action="/settings">
+        <div class="settings-field">
           <label for="settings-language">{{ t.language }}</label>
           <select id="settings-language" name="language">
             <option value="en" {% if settings.language == 'en' %}selected{% endif %}>{{ t.english }}</option>
             <option value="no" {% if settings.language == 'no' %}selected{% endif %}>{{ t.norwegian }}</option>
           </select>
         </div>
-        <div>
+        <div class="settings-field">
           <label for="settings-theme">{{ t.theme }}</label>
           <select id="settings-theme" name="theme">
             <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>{{ t.light }}</option>
@@ -41,9 +48,14 @@
       </form>
     </section>
 
-    <section class="card" aria-labelledby="api-keys-heading">
-      <h2 id="api-keys-heading">{{ t.api_keys }}</h2>
-      <p>{{ t.api_key_intro }}</p>
+    <section class="settings-panel" aria-labelledby="api-keys-heading">
+      <div class="settings-card-header">
+        <div>
+          <p class="settings-eyebrow">Security</p>
+          <h2 id="api-keys-heading">{{ t.api_keys }}</h2>
+        </div>
+      </div>
+      <p class="settings-description">{{ t.api_key_intro }}</p>
 
       {% if new_api_key %}
         <div class="notice" role="status">
@@ -53,22 +65,22 @@
         </div>
       {% endif %}
 
-      <form method="post" action="/settings/api-keys">
-        <div>
+      <form class="settings-form" method="post" action="/settings/api-keys">
+        <div class="settings-field">
           <label for="api-key-name">{{ t.api_key_name }}</label>
           <input id="api-key-name" name="name" autocomplete="off" required>
         </div>
         {% if has_api_keys %}
-        <div>
+        <div class="settings-field">
           <label for="current-api-key">{{ t.current_api_key }}</label>
           <input id="current-api-key" name="current_api_key" type="password" autocomplete="off" aria-describedby="current-api-key-help" required>
-          <p id="current-api-key-help">{{ t.current_api_key_help }}</p>
+          <p class="settings-help" id="current-api-key-help">{{ t.current_api_key_help }}</p>
         </div>
         {% endif %}
         <button type="submit">{{ t.create_api_key }}</button>
       </form>
 
-      <h3>{{ t.existing_api_keys }}</h3>
+      <h3 class="settings-subheading">{{ t.existing_api_keys }}</h3>
       {% if api_keys %}
         <ul class="item-list" aria-label="{{ t.existing_api_keys }}">
         {% for key in api_keys %}
@@ -85,6 +97,7 @@
         <p>{{ t.no_api_keys }}</p>
       {% endif %}
     </section>
+    </div>
   </main>
 </body>
 </html>

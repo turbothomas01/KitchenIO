@@ -16,8 +16,19 @@ def test_settings_page_persists_default_language_and_theme(tmp_path: Path):
     response = client.get("/settings")
     assert response.status_code == 200
     soup = BeautifulSoup(response.text, "html.parser")
-    assert soup.find("main") is not None
-    assert soup.find("h1", string="Settings") is not None
+    main = soup.find("main")
+    assert main is not None
+    assert "settings-shell" in main.get("class", [])
+    hero = soup.select_one(".settings-hero")
+    assert hero is not None
+    assert hero.find("h1", string="Settings") is not None
+    assert hero.select_one("a.settings-back-link[href='/']") is not None
+    grid = soup.select_one(".settings-grid")
+    assert grid is not None
+    assert soup.select_one("section.settings-panel[aria-labelledby='preferences-heading']") is not None
+    assert soup.select_one("section.settings-panel[aria-labelledby='api-keys-heading']") is not None
+    assert soup.select_one(".settings-card-header #preferences-heading") is not None
+    assert soup.select_one(".settings-card-header #api-keys-heading") is not None
     assert soup.find("label", attrs={"for": "settings-language"}) is not None
     assert soup.find("label", attrs={"for": "settings-theme"}) is not None
     stylesheet = soup.find("link", rel="stylesheet")
@@ -34,6 +45,20 @@ def test_settings_page_persists_default_language_and_theme(tmp_path: Path):
     assert 'lang="no"' in home.text
     assert 'data-theme="dark"' in home.text
     assert "Produkter" in home.text
+
+
+def test_settings_styles_are_modern_and_responsive():
+    styles = Path("kitchenio/static/styles.css").read_text(encoding="utf-8")
+
+    assert ".settings-shell" in styles
+    assert ".settings-hero" in styles
+    assert ".settings-grid" in styles
+    assert ".settings-panel" in styles
+    assert ".settings-card-header" in styles
+    assert ".settings-back-link" in styles
+    assert "grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);" in styles
+    assert "@media (max-width: 44rem)" in styles
+    assert ".settings-grid" in styles.split("@media (max-width: 44rem)", 1)[1]
 
 
 def test_home_uses_plus_button_that_opens_accessible_product_dialog(tmp_path: Path):
