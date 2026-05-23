@@ -3,7 +3,7 @@ function setupTabs() {
   const addButton = document.getElementById('open-active-dialog');
   if (!tabs.length || !addButton) return;
 
-  function activate(tab) {
+  function activate(tab, options = {}) {
     tabs.forEach((candidate) => {
       const selected = candidate === tab;
       candidate.setAttribute('aria-selected', String(selected));
@@ -18,10 +18,15 @@ function setupTabs() {
     addButton.setAttribute('aria-label', label);
     addButton.setAttribute('title', label);
     addButton.setAttribute('aria-controls', dialog);
+
+    if (options.updateHash) {
+      const panelId = tab.getAttribute('aria-controls');
+      if (panelId) history.replaceState(null, '', `#${panelId}`);
+    }
   }
 
   tabs.forEach((tab) => {
-    tab.addEventListener('click', () => activate(tab));
+    tab.addEventListener('click', () => activate(tab, { updateHash: true }));
     tab.addEventListener('keydown', (event) => {
       const current = tabs.indexOf(tab);
       let next = null;
@@ -31,10 +36,14 @@ function setupTabs() {
       if (event.key === 'End') next = tabs[tabs.length - 1];
       if (!next) return;
       event.preventDefault();
-      activate(next);
+      activate(next, { updateHash: true });
       next.focus();
     });
   });
+
+  const initialPanelId = window.location.hash.replace('#', '');
+  const initialTab = tabs.find((tab) => tab.getAttribute('aria-controls') === initialPanelId);
+  if (initialTab) activate(initialTab);
 }
 
 document.addEventListener('DOMContentLoaded', setupTabs);

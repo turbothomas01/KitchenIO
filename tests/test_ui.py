@@ -183,11 +183,22 @@ def test_shopping_list_amount_can_be_adjusted_with_plus_and_minus(tmp_path: Path
 
     increased = client.post(f"/ui/shopping-list/{item_id}/adjust", data={"delta": "1"}, follow_redirects=False)
     assert increased.status_code == 303
+    assert increased.headers["location"].endswith("#shopping-panel")
     assert client.get("/api/shopping-list").json()[0]["amount"] == "3"
 
     decreased = client.post(f"/ui/shopping-list/{item_id}/adjust", data={"delta": "-1"}, follow_redirects=False)
     assert decreased.status_code == 303
+    assert decreased.headers["location"].endswith("#shopping-panel")
     assert client.get("/api/shopping-list").json()[0]["amount"] == "2"
+
+
+def test_tabs_restore_active_panel_from_url_hash():
+    tabs_script = (Path(__file__).resolve().parents[1] / "kitchenio" / "static" / "tabs.js").read_text(encoding="utf-8")
+
+    assert "window.location.hash" in tabs_script
+    assert "initialTab" in tabs_script
+    assert "activate(initialTab)" in tabs_script
+    assert "history.replaceState" in tabs_script
 
 
 def test_shopping_counter_rows_stay_horizontal_on_mobile():
