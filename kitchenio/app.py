@@ -21,7 +21,7 @@ DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
 SUPPORTED_LANGUAGES = {"en", "no"}
 SUPPORTED_THEMES = {"light", "dark"}
 SAFE_STOCK_COUNT_RE = re.compile(r"^[+-]?\d{1,6}(?:[,.]\d{1,3})?$")
-STATIC_ASSETS = ("styles.css", "dialogs.js", "tabs.js")
+STATIC_ASSETS = ("styles.css", "dialogs.js", "tabs.js", "kitchenio-logo.png", "kitchenio-icon.png")
 
 
 def static_asset_version(static_dir: Path) -> int:

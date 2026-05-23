@@ -22,6 +22,9 @@ def test_settings_page_persists_default_language_and_theme(tmp_path: Path):
     hero = soup.select_one(".settings-hero")
     assert hero is not None
     assert hero.find("h1", string="Settings") is not None
+    logo = hero.select_one("img.app-logo[alt='KitchenIO']")
+    assert logo is not None
+    assert "/static/kitchenio-logo.png?v=" in logo["src"]
     assert hero.select_one("a.settings-back-link[href='/']") is not None
     grid = soup.select_one(".settings-grid")
     assert grid is not None

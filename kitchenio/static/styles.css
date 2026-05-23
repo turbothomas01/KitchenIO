@@ -71,6 +71,33 @@ main {
   margin: 0;
 }
 
+.brand-lockup,
+.settings-brand-lockup {
+  align-items: center;
+  display: flex;
+  gap: 0.85rem;
+}
+
+.app-logo {
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 1rem;
+  box-shadow: 0 0.55rem 1.2rem rgb(0 0 0 / 0.18);
+  display: block;
+  flex: 0 0 auto;
+  height: 3.5rem;
+  object-fit: cover;
+  width: 3.5rem;
+}
+
+.settings-brand-lockup {
+  margin-bottom: 0.55rem;
+}
+
+.settings-brand-lockup .settings-eyebrow {
+  margin: 0;
+}
+
 .settings-icon {
   align-items: center;
   border: 2px solid var(--accent);

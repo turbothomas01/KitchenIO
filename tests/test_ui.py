@@ -22,6 +22,13 @@ def test_home_ui_has_accessible_structure_language_and_theme_controls(tmp_path: 
     assert soup.find(id="stock-panel") is None
     assert soup.find("a", href="/settings") is not None
     assert soup.select_one("header.site-header .header-title-row > a.settings-icon[href='/settings']") is not None
+    logo = soup.select_one("header.site-header img.app-logo")
+    assert logo is not None
+    assert "/static/kitchenio-logo.png?v=" in logo["src"]
+    assert logo["alt"] == "KitchenIO"
+    favicon = soup.find("link", rel="icon")
+    assert favicon is not None
+    assert "kitchenio-icon.png?v=" in favicon["href"]
     stylesheet = soup.find("link", rel="stylesheet")
     assert stylesheet is not None
     assert "styles.css?v=" in stylesheet["href"]
@@ -87,11 +94,15 @@ def test_static_asset_version_changes_when_script_is_newer(tmp_path: Path):
     stylesheet.write_text("body {}", encoding="utf-8")
     dialog_script.write_text("console.log('dialogs')", encoding="utf-8")
     tab_script.write_text("console.log('tabs')", encoding="utf-8")
+    (static_dir / "kitchenio-logo.png").write_bytes(b"logo")
+    (static_dir / "kitchenio-icon.png").write_bytes(b"icon")
     older = 1_700_000_000_000_000_000
     newer = older + 30
 
     os.utime(stylesheet, ns=(older, older))
     os.utime(dialog_script, ns=(older, older))
+    os.utime(static_dir / "kitchenio-logo.png", ns=(older, older))
+    os.utime(static_dir / "kitchenio-icon.png", ns=(older, older))
     os.utime(tab_script, ns=(newer, newer))
 
     assert static_asset_version(static_dir) == newer
