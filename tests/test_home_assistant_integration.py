@@ -29,12 +29,20 @@ def test_stock_is_displayed_as_one_summary_sensor_with_items_attribute():
 
 def test_shopping_list_integration_uses_home_assistant_default_todo_service():
     services = (INTEGRATION / "services.py").read_text(encoding="utf-8")
+    sync = (INTEGRATION / "shopping_sync.py").read_text(encoding="utf-8")
 
     assert "todo.add_item" not in services  # HA service is domain/service, not a string endpoint.
     assert '"todo"' in services
     assert '"add_item"' in services
     assert '"todo.shopping_list"' in services
     assert "/api/shopping-list" not in services
+    assert "async_shopping_list" in sync
+    assert "async_add_shopping_item" in sync
+    assert "async_delete_shopping_item" in sync
+    assert '"get_items"' in sync
+    assert '"add_item"' in sync
+    assert '"remove_item"' in sync
+    assert "DEFAULT_SHOPPING_LIST_ENTITY" in sync
 
 
 def test_docs_explain_hacs_install_and_default_shopping_list_strategy():
@@ -44,4 +52,4 @@ def test_docs_explain_hacs_install_and_default_shopping_list_strategy():
     assert "sensor.kitchenio_stock" in docs
     assert "todo.shopping_list" in docs
     assert "single stock summary sensor" in docs
-    assert "does not create a second shopping list" in docs
+    assert "syncs both ways" in docs

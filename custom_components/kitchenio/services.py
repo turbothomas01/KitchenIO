@@ -13,10 +13,11 @@ DEFAULT_TODO_SHOPPING_LIST = "todo.shopping_list"
 
 
 def _first_coordinator(hass: HomeAssistant) -> Any:
-    coordinators = hass.data.get(DOMAIN, {})
-    if not coordinators:
+    entries = hass.data.get(DOMAIN, {})
+    if not entries:
         raise HomeAssistantError("KitchenIO is not configured")
-    return next(iter(coordinators.values()))
+    entry_data = next(iter(entries.values()))
+    return entry_data["coordinator"]
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:

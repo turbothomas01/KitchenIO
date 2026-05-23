@@ -20,7 +20,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KitchenIO stock sensor."""
-    coordinator: KitchenIOCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: KitchenIOCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     async_add_entities([KitchenIOStockSensor(coordinator, entry)])
 
 

@@ -36,13 +36,33 @@ class KitchenIOClient:
             raise KitchenIOApiError("KitchenIO stock response was not a list")
         return data
 
-    async def _request(self, method: str, path: str) -> Any:
+    async def async_shopping_list(self) -> list[dict[str, Any]]:
+        data = await self._request("GET", "/api/shopping-list")
+        if not isinstance(data, list):
+            raise KitchenIOApiError("KitchenIO shopping-list response was not a list")
+        return data
+
+    async def async_add_shopping_item(self, item: str, amount: str) -> dict[str, Any]:
+        data = await self._request(
+            "POST",
+            "/api/shopping-list",
+            json={"item": item, "amount": amount},
+        )
+        if not isinstance(data, dict):
+            raise KitchenIOApiError("KitchenIO add-shopping response was not an object")
+        return data
+
+    async def async_delete_shopping_item(self, item_id: int) -> None:
+        await self._request("DELETE", f"/api/shopping-list/{item_id}")
+
+    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         try:
             async with self.session.request(
                 method,
                 f"{self.url}{path}",
                 headers=self.headers,
                 timeout=aiohttp.ClientTimeout(total=15),
+                **kwargs,
             ) as response:
                 if response.status >= 400:
                     body = await response.text()

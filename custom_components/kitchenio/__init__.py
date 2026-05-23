@@ -8,6 +8,7 @@ from .api import KitchenIOClient
 from .const import CONF_API_KEY, CONF_URL, DOMAIN, PLATFORMS
 from .coordinator import KitchenIOCoordinator
 from .services import async_setup_services, async_unload_services
+from .shopping_sync import KitchenIOShoppingSync
 
 
 KitchenIOConfigEntry = ConfigEntry
@@ -23,8 +24,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: KitchenIOConfigEntry) ->
     )
     coordinator = KitchenIOCoordinator(hass, client)
     await coordinator.async_config_entry_first_refresh()
+    sync = KitchenIOShoppingSync(hass, coordinator)
+    await sync.async_start()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"coordinator": coordinator, "sync": sync}
     await async_setup_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -34,7 +37,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: KitchenIOConfigEntry) -
     """Unload KitchenIO."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        entry_data = hass.data[DOMAIN].pop(entry.entry_id)
+        await entry_data["sync"].async_stop()
         if not hass.data[DOMAIN]:
             await async_unload_services(hass)
     return unload_ok
