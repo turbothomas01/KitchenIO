@@ -17,100 +17,24 @@
   </header>
 
   <main>
-    <nav class="tabs" aria-label="{{ t.main_sections }}">
-      <div role="tablist" aria-label="{{ t.main_sections }}">
-        <button type="button" role="tab" aria-selected="true" aria-controls="stock-panel" id="stock-tab">{{ t.stock }}</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="shopping-panel" id="shopping-tab" tabindex="-1">{{ t.shopping_list }}</button>
-      </div>
-    </nav>
-
-    <section id="stock-panel" class="panel" role="tabpanel" aria-labelledby="stock-tab" tabindex="-1">
-      <button id="open-stock-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="stock-dialog">+ {{ t.add_stock }}</button>
-      <dialog id="stock-dialog" aria-labelledby="add-stock-heading" aria-modal="true">
+    <section id="products-panel" class="panel" aria-label="{{ t.shopping_items }}">
+      <button id="open-product-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="product-dialog">+ {{ t.add_shopping }}</button>
+      <dialog id="product-dialog" aria-labelledby="add-product-heading" aria-modal="true">
         <form method="dialog" class="dialog-close-form">
           <button type="submit" value="cancel">{{ t.close }}</button>
         </form>
-        <h3 id="add-stock-heading">{{ t.add_bought_stock }}</h3>
-        {% if refill_items %}
-          <form method="post" action="/ui/stock/refill" aria-labelledby="add-stock-heading">
-            <input type="hidden" name="lang" value="{{ lang }}">
-            <input type="hidden" name="theme" value="{{ theme }}">
-            <div>
-              <label for="refill-stock-item">{{ t.select_stock_item }}</label>
-              <select id="refill-stock-item" name="stock_item_id" required>
-                {% for item in refill_items %}
-                  <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div>
-              <label for="refill-stock-amount">{{ t.refill_amount }}</label>
-              <input id="refill-stock-amount" name="amount" autocomplete="off" required>
-            </div>
-            <button type="submit">{{ t.add_stock }}</button>
-          </form>
-        {% else %}
-          <p>{{ t.no_stock_for_refill }}</p>
-          <a href="/settings">{{ t.settings }}</a>
-        {% endif %}
-      </dialog>
-
-      <h3>{{ t.stock_items }}</h3>
-      {% if stock_items %}
-        <ul class="item-list" aria-label="{{ t.stock_items }}">
-        {% for item in stock_items %}
-          <li class="stock-counter-card">
-            {% if item.stock_count_is_numeric %}
-            <form method="post" action="/ui/stock/{{ item.id }}/adjust" class="stock-counter-action">
-              <input type="hidden" name="lang" value="{{ lang }}">
-              <input type="hidden" name="theme" value="{{ theme }}">
-              <input type="hidden" name="delta" value="-1">
-              <button type="submit" aria-label="{{ t.decrease_stock }}: {{ item.name }}">−</button>
-            </form>
-            {% endif %}
-            <div class="stock-counter-details" id="stock-item-{{ item.id }}">
-              <strong>{{ item.name }}</strong>
-              <span>{{ t.in_stock_count }}: {{ item.stock_count }}</span>
-              <form method="post" action="/ui/stock/{{ item.id }}/shopping-list" class="inline-action">
-                <input type="hidden" name="lang" value="{{ lang }}">
-                <input type="hidden" name="theme" value="{{ theme }}">
-                <button type="submit">{{ t.add_to_shopping_list }}</button>
-              </form>
-            </div>
-            {% if item.stock_count_is_numeric %}
-            <form method="post" action="/ui/stock/{{ item.id }}/adjust" class="stock-counter-action">
-              <input type="hidden" name="lang" value="{{ lang }}">
-              <input type="hidden" name="theme" value="{{ theme }}">
-              <input type="hidden" name="delta" value="1">
-              <button type="submit" aria-label="{{ t.increase_stock }}: {{ item.name }}">+</button>
-            </form>
-            {% endif %}
-          </li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        <p>{{ t.no_stock }}</p>
-      {% endif %}
-    </section>
-
-    <section id="shopping-panel" class="panel" role="tabpanel" aria-labelledby="shopping-tab" tabindex="-1" hidden>
-      <button id="open-shopping-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="shopping-dialog">+ {{ t.add_shopping }}</button>
-      <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading" aria-modal="true">
-        <form method="dialog" class="dialog-close-form">
-          <button type="submit" value="cancel">{{ t.close }}</button>
-        </form>
-        <form method="post" action="/ui/shopping-list" aria-labelledby="add-shopping-heading">
-          <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
+        <form method="post" action="/ui/shopping-list" aria-labelledby="add-product-heading">
+          <h3 id="add-product-heading">{{ t.add_shopping }}</h3>
           <p>{{ t.plain_text_hint }}</p>
           <input type="hidden" name="lang" value="{{ lang }}">
           <input type="hidden" name="theme" value="{{ theme }}">
           <div>
-            <label for="shopping-item">{{ t.item }}</label>
-            <input id="shopping-item" name="item" autocomplete="off" required>
+            <label for="product-item">{{ t.item }}</label>
+            <input id="product-item" name="item" autocomplete="off" required>
           </div>
           <div>
-            <label for="shopping-amount">{{ t.amount }}</label>
-            <input id="shopping-amount" name="amount" autocomplete="off" required>
+            <label for="product-amount">{{ t.amount }}</label>
+            <input id="product-amount" name="amount" autocomplete="off" value="1" required>
           </div>
           <button type="submit">{{ t.add_shopping }}</button>
         </form>
@@ -149,6 +73,6 @@
       {% endif %}
     </section>
   </main>
-  <script src="{{ url_for('static', path='/tabs.js') }}?v={{ asset_version }}" defer></script>
+  <script src="{{ url_for('static', path='/dialogs.js') }}?v={{ asset_version }}" defer></script>
 </body>
 </html>

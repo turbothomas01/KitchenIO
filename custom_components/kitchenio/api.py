@@ -36,6 +36,10 @@ class KitchenIOClient:
             raise KitchenIOApiError("KitchenIO stock response was not a list")
         return data
 
+    async def async_products(self) -> list[dict[str, Any]]:
+        """Return the KitchenIO v1 product list."""
+        return await self.async_shopping_list()
+
     async def async_shopping_list(self) -> list[dict[str, Any]]:
         data = await self._request("GET", "/api/shopping-list")
         if not isinstance(data, list):

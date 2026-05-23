@@ -16,15 +16,17 @@ def test_home_assistant_manifest_is_config_flow_ready():
     assert manifest["iot_class"] == "local_polling"
 
 
-def test_stock_is_displayed_as_one_summary_sensor_with_items_attribute():
+def test_products_are_displayed_as_one_summary_sensor_with_items_attribute():
     sensor = (INTEGRATION / "sensor.py").read_text(encoding="utf-8")
+    coordinator = (INTEGRATION / "coordinator.py").read_text(encoding="utf-8")
 
-    assert "KitchenIOStockSensor" in sensor
+    assert "KitchenIOProductSensor" in sensor
     assert "native_value" in sensor
     assert "extra_state_attributes" in sensor
     assert '"items"' in sensor
-    assert '"stock_table"' in sensor
+    assert '"product_table"' in sensor
     assert "len([item for item in self.coordinator.data" in sensor
+    assert "async_products" in coordinator
 
 
 def test_shopping_list_integration_uses_home_assistant_default_todo_service():
@@ -50,9 +52,8 @@ def test_docs_explain_hacs_install_and_default_shopping_list_strategy():
     docs = (ROOT / "docs" / "home-assistant.md").read_text(encoding="utf-8")
 
     assert "HACS" in docs
-    assert "sensor.kitchenio_stock" in docs
+    assert "product list" in docs
     assert "todo.shopping_list" in docs
-    assert "single stock summary sensor" in docs
     assert "syncs both ways" in docs
 
 

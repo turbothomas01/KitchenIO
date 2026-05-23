@@ -103,33 +103,6 @@ main {
   gap: 0.75rem;
 }
 
-.tabs {
-  margin: 1rem 0;
-}
-
-.tabs [role="tablist"] {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 42rem;
-}
-
-[role="tab"] {
-  background: transparent;
-  border: 2px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent);
-  padding: 0.6rem 1rem;
-  width: 100%;
-}
-
-[role="tab"][aria-selected="true"],
-[role="tab"]:focus,
-[role="tab"]:hover {
-  background: var(--accent);
-  color: var(--accent-text);
-}
-
 .panel {
   margin-block: 1.5rem;
 }
@@ -289,13 +262,6 @@ a:focus {
   border-style: dashed;
 }
 
-.stock-counter-card {
-  align-items: center;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-}
-
 .shopping-counter-row {
   align-items: center;
   display: grid;
@@ -321,21 +287,6 @@ a:focus {
 
 .shopping-complete-action {
   line-height: 1;
-}
-
-.stock-counter-details {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.stock-counter-details strong,
-.stock-counter-details span {
-  overflow-wrap: anywhere;
-}
-
-.stock-counter-details span {
-  color: var(--muted);
 }
 
 .stock-counter-action button {
@@ -372,11 +323,6 @@ a:focus {
   .actions > *,
   button {
     margin-top: 0.5rem;
-    width: 100%;
-  }
-
-  .tabs [role="tab"] {
-    margin-top: 0;
     width: 100%;
   }
 

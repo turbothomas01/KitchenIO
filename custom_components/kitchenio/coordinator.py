@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class KitchenIOCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
-    """Fetch KitchenIO stock on a regular interval."""
+    """Fetch KitchenIO products on a regular interval."""
 
     def __init__(self, hass: HomeAssistant, client: KitchenIOClient) -> None:
         super().__init__(
@@ -26,6 +26,6 @@ class KitchenIOCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         try:
-            return await self.client.async_stock()
+            return await self.client.async_products()
         except KitchenIOApiError as exc:
             raise UpdateFailed(str(exc)) from exc

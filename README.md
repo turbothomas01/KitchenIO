@@ -1,20 +1,15 @@
 # KitchenIO
 
-KitchenIO is a small self-hosted grocery and pantry management service. It is intentionally focused on only two things:
+KitchenIO is a small self-hosted grocery list service. Version 1 is intentionally focused on one simple product list: product name, amount, and plus/minus buttons.
 
-- **Stock**: what you have at home.
-- **Shopping List**: what you need to buy.
-
-It is similar in concept to Grocy, but deliberately minimal. There are no recipes, chores, batteries, calendars, meal planning, barcode scanning, or other unrelated features.
+It is similar in concept to Grocy, but deliberately minimal. There are no recipes, chores, batteries, calendars, meal planning, barcode scanning, stock database screens, or other unrelated features.
 
 ## Features
 
 - Accessible web UI built with semantic HTML.
-- Stock tab and Shopping List tab.
-- Add, edit, delete, and list stock items.
-- Add stock items directly to the shopping list.
-- Add plain text shopping list items that are not in stock.
-- Edit, delete, and mark shopping list items completed.
+- One product list with checkbox, product name, amount, and plus/minus controls.
+- Add products as plain text with an amount.
+- Mark products completed.
 - Light and dark themes.
 - English and Norwegian UI language.
 - Settings page for default theme, default language, and API key creation.
@@ -22,9 +17,8 @@ It is similar in concept to Grocy, but deliberately minimal. There are no recipe
 - SQLite storage.
 - REST API for Home Assistant, Hermes Agent, scripts, and automations.
 - Home Assistant custom integration under `custom_components/kitchenio`.
-- Home Assistant stock display via one summary sensor instead of one entity per item.
-- Shopping-list items sync both ways with the default Home Assistant `todo.shopping_list`.
-- Accessible modal add screens opened from `+` buttons for Stock and Shopping List.
+- Product-list items sync both ways with the default Home Assistant `todo.shopping_list`.
+- Accessible modal add screen opened from a `+` button.
 - Docker and Docker Compose support.
 - Basic automated tests.
 

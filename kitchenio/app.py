@@ -21,7 +21,7 @@ DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
 SUPPORTED_LANGUAGES = {"en", "no"}
 SUPPORTED_THEMES = {"light", "dark"}
 SAFE_STOCK_COUNT_RE = re.compile(r"^[+-]?\d{1,6}(?:[,.]\d{1,3})?$")
-STATIC_ASSETS = ("styles.css", "tabs.js")
+STATIC_ASSETS = ("styles.css", "dialogs.js")
 
 
 def static_asset_version(static_dir: Path) -> int:
@@ -63,7 +63,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "dark": "Dark",
         "apply": "Apply",
         "stock": "Stock",
-        "shopping_list": "Shopping List",
+        "shopping_list": "Products",
         "add_stock": "Add to stock",
         "create_stock_item": "Create stock database item",
         "add_bought_stock": "Refill existing stock item",
@@ -89,17 +89,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "save": "Save",
         "delete": "Delete",
         "add_to_shopping_list": "Add to shopping list",
-        "add_shopping": "Add shopping item",
+        "add_shopping": "Add product",
         "edit_shopping": "Edit shopping item",
-        "shopping_items": "Shopping list items",
-        "no_shopping": "No shopping list items yet.",
+        "shopping_items": "Products",
+        "no_shopping": "No products yet.",
         "item": "Item",
         "completed": "Completed",
         "mark_completed": "Mark completed",
         "yes": "Yes",
         "no": "No",
         "from_stock": "From stock",
-        "plain_text_hint": "Plain text items do not need to exist in stock.",
+        "plain_text_hint": "Add a product name and amount.",
     },
     "no": {
         "app_name": "KitchenIO",
@@ -129,7 +129,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "dark": "Mørkt",
         "apply": "Bruk",
         "stock": "Lager",
-        "shopping_list": "Handleliste",
+        "shopping_list": "Produkter",
         "add_stock": "Fyll på lager",
         "create_stock_item": "Opprett vare i lagerdatabasen",
         "add_bought_stock": "Fyll på eksisterende lagervare",
@@ -155,17 +155,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "save": "Lagre",
         "delete": "Slett",
         "add_to_shopping_list": "Legg til i handleliste",
-        "add_shopping": "Legg til handlelistevare",
+        "add_shopping": "Legg til produkt",
         "edit_shopping": "Rediger handlelistevare",
-        "shopping_items": "Handlelistevarer",
-        "no_shopping": "Ingen handlelistevarer ennå.",
+        "shopping_items": "Produkter",
+        "no_shopping": "Ingen produkter ennå.",
         "item": "Vare",
         "completed": "Fullført",
         "mark_completed": "Merk som fullført",
         "yes": "Ja",
         "no": "Nei",
         "from_stock": "Fra lager",
-        "plain_text_hint": "Fritekstvarer trenger ikke finnes på lager.",
+        "plain_text_hint": "Legg inn produktnavn og mengde.",
     },
 }
 
