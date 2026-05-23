@@ -6,8 +6,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError, ServiceNotFound
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DEFAULT_SHOPPING_LIST_ENTITY, DEFAULT_SHOPPING_SYNC_INTERVAL, DOMAIN
@@ -49,9 +49,13 @@ class KitchenIOShoppingSync:
     async def async_start(self) -> None:
         """Start periodic sync and run once immediately."""
         await self.async_sync()
+        @callback
+        def _schedule_sync(now: Any) -> None:
+            self.hass.async_create_task(self.async_sync())
+
         self._unsub = async_track_time_interval(
             self.hass,
-            lambda now: self.hass.async_create_task(self.async_sync()),
+            _schedule_sync,
             DEFAULT_SHOPPING_SYNC_INTERVAL,
         )
 
@@ -83,6 +87,8 @@ class KitchenIOShoppingSync:
             self._known_ha_keys = {item.key for item in ha_items}
             self._known_kitchenio_keys = {item.key for item in kitchenio_items}
             await self.coordinator.async_request_refresh()
+        except (HomeAssistantError, ServiceNotFound) as exc:
+            _LOGGER.debug("KitchenIO shopping-list sync skipped: %s", exc)
         except Exception:  # noqa: BLE001 - keep HA running if sync fails.
             _LOGGER.exception("KitchenIO shopping-list sync failed")
         finally:
@@ -140,6 +146,8 @@ class KitchenIOShoppingSync:
         ]
 
     async def _async_get_ha_items(self) -> list[ShoppingEntry]:
+        if not self.hass.services.has_service("todo", "get_items"):
+            raise ServiceNotFound("todo", "get_items")
         response = await self.hass.services.async_call(
             "todo",
             "get_items",
@@ -175,7 +183,7 @@ class KitchenIOShoppingSync:
 def _extract_todo_items(response: Any, entity_id: str) -> list[dict[str, Any]]:
     if not isinstance(response, dict):
         raise HomeAssistantError("Unexpected response from todo.get_items")
-    entity_response = response.get(entity_id) or response.get("response") or response
+    entity_response = response.get("service_response", {}).get(entity_id) or response.get(entity_id) or response.get("response") or response
     if isinstance(entity_response, dict) and isinstance(entity_response.get("items"), list):
         return entity_response["items"]
     if isinstance(entity_response, list):
