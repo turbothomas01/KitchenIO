@@ -122,6 +122,16 @@ def test_norwegian_ui_text_is_available(tmp_path: Path):
     assert 'data-shopping-label="Legg til i handlelisten"' in response.text
 
 
+def test_app_uses_assistant_orange_primary_palette():
+    styles = Path("kitchenio/static/styles.css").read_text(encoding="utf-8")
+
+    assert "--accent: #ff7a1a;" in styles
+    assert styles.count("--accent: #ff7a1a;") == 2
+    assert "--accent-blue: #4db7ff;" in styles
+    assert "--bg: #fff7ed;" in styles
+    assert "--bg: #07111f;" in styles
+
+
 def test_mobile_product_counter_styles_are_present():
     styles = Path("kitchenio/static/styles.css").read_text()
 
