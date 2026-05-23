@@ -88,6 +88,7 @@ main {
 .card,
 .edit-form,
 .item-card,
+.shopping-counter-row,
 .stock-counter-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -190,6 +191,16 @@ dialog::backdrop {
   padding: 1rem;
 }
 
+.sr-only {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 output {
   display: block;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -285,6 +296,33 @@ a:focus {
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
+.shopping-counter-row {
+  align-items: center;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+}
+
+.shopping-counter-row.completed {
+  border-style: dashed;
+}
+
+.shopping-counter-name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.shopping-counter-amount {
+  color: var(--muted);
+  font-weight: 700;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.shopping-complete-action {
+  line-height: 1;
+}
+
 .stock-counter-details {
   display: grid;
   gap: 0.15rem;
@@ -321,6 +359,7 @@ a:focus {
 
 @media (max-width: 44rem) {
   .item-card,
+  .shopping-counter-row,
   .preferences {
     display: block;
   }

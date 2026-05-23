@@ -112,3 +112,37 @@ def test_mobile_header_tabs_and_stock_counter_styles_are_present():
     assert ".stock-counter-card" in styles
     assert "grid-template-columns: auto minmax(0, 1fr) auto;" in styles
     assert "@media (max-width: 44rem) {\n  .site-header," not in styles
+
+
+def test_shopping_list_rows_are_simple_checkbox_name_and_quantity_controls(tmp_path: Path):
+    client = TestClient(create_app(tmp_path / "kitchenio-test.db"))
+    created = client.post("/api/shopping-list", json={"item": "Milk", "amount": "2"})
+    assert created.status_code == 201
+    item_id = created.json()["id"]
+
+    response = client.get("/?lang=en&theme=dark")
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    row = soup.select_one(f"li.shopping-counter-row[data-shopping-item-id='{item_id}']")
+    assert row is not None
+    assert row.select_one("input[type='checkbox'][name='completed']") is not None
+    assert row.select_one(".shopping-counter-name").get_text(strip=True) == "Milk"
+    assert row.select_one(".shopping-counter-amount").get_text(strip=True) == "2"
+    assert row.select_one("form[action$='/adjust'] input[name='delta'][value='-1']") is not None
+    assert row.select_one("form[action$='/adjust'] input[name='delta'][value='1']") is not None
+    assert row.find("input", attrs={"name": "item"}) is None
+    assert row.find("input", attrs={"name": "amount"}) is None
+
+
+def test_shopping_list_amount_can_be_adjusted_with_plus_and_minus(tmp_path: Path):
+    client = TestClient(create_app(tmp_path / "kitchenio-test.db"))
+    item_id = client.post("/api/shopping-list", json={"item": "Milk", "amount": "2"}).json()["id"]
+
+    increased = client.post(f"/ui/shopping-list/{item_id}/adjust", data={"delta": "1"}, follow_redirects=False)
+    assert increased.status_code == 303
+    assert client.get("/api/shopping-list").json()[0]["amount"] == "3"
+
+    decreased = client.post(f"/ui/shopping-list/{item_id}/adjust", data={"delta": "-1"}, follow_redirects=False)
+    assert decreased.status_code == 303
+    assert client.get("/api/shopping-list").json()[0]["amount"] == "2"

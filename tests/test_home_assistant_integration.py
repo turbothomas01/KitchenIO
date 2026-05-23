@@ -54,3 +54,12 @@ def test_docs_explain_hacs_install_and_default_shopping_list_strategy():
     assert "todo.shopping_list" in docs
     assert "single stock summary sensor" in docs
     assert "syncs both ways" in docs
+
+
+def test_home_assistant_sync_uses_x_quantity_format_and_canonicalises_plain_items():
+    sync = (INTEGRATION / "shopping_sync.py").read_text(encoding="utf-8")
+
+    assert 'r"^(.+?)\\s+x(\\d+)\\s*$"' in sync
+    assert 'canonical_text = f"{clean_name} x{clean_amount}"' in sync
+    assert "_async_replace_ha_item" in sync
+    assert "if item.text != item.canonical_text" in sync

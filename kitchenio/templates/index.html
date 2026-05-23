@@ -120,40 +120,27 @@
       {% if shopping_items %}
         <ul class="item-list" aria-label="{{ t.shopping_items }}">
         {% for item in shopping_items %}
-          <li class="item-card {% if item.completed %}completed{% endif %}">
-            <form method="post" action="/ui/shopping-list/{{ item.id }}" class="edit-form" aria-labelledby="shopping-item-{{ item.id }}">
-              <h4 id="shopping-item-{{ item.id }}">{{ t.edit_shopping }}: {{ item.item }}</h4>
+          <li class="shopping-counter-row {% if item.completed %}completed{% endif %}" data-shopping-item-id="{{ item.id }}">
+            <form method="post" action="/ui/shopping-list/{{ item.id }}/complete" class="shopping-complete-action">
               <input type="hidden" name="lang" value="{{ lang }}">
               <input type="hidden" name="theme" value="{{ theme }}">
-              <div>
-                <label for="shopping-name-{{ item.id }}">{{ t.item }}</label>
-                <input id="shopping-name-{{ item.id }}" name="item" value="{{ item.item }}" required>
-              </div>
-              <div>
-                <label for="shopping-amount-{{ item.id }}">{{ t.amount }}</label>
-                <input id="shopping-amount-{{ item.id }}" name="amount" value="{{ item.amount }}" required>
-              </div>
-              <div class="checkbox-row">
-                <input id="shopping-completed-{{ item.id }}" type="checkbox" name="completed" value="true" {% if item.completed %}checked{% endif %}>
-                <label for="shopping-completed-{{ item.id }}">{{ t.completed }}</label>
-              </div>
-              {% if item.stock_item_id %}<p>{{ t.from_stock }}</p>{% endif %}
-              <button type="submit">{{ t.save }}</button>
+              <input id="shopping-completed-{{ item.id }}" type="checkbox" name="completed" value="true" aria-label="{{ t.completed }}: {{ item.item }}" {% if item.completed %}checked disabled{% endif %} onchange="this.form.submit()">
+              <label class="sr-only" for="shopping-completed-{{ item.id }}">{{ t.completed }}: {{ item.item }}</label>
             </form>
-            <div class="actions" aria-label="{{ t.actions }}: {{ item.item }}">
-              {% if not item.completed %}
-              <form method="post" action="/ui/shopping-list/{{ item.id }}/complete">
-                <input type="hidden" name="lang" value="{{ lang }}">
-                <input type="hidden" name="theme" value="{{ theme }}">
-                <button type="submit">{{ t.mark_completed }}</button>
-              </form>
-              {% endif %}
-              <form method="post" action="/ui/shopping-list/{{ item.id }}/delete">
-                <input type="hidden" name="lang" value="{{ lang }}">
-                <input type="hidden" name="theme" value="{{ theme }}">
-                <button type="submit">{{ t.delete }}</button>
-              </form>
-            </div>
+            <span class="shopping-counter-name" id="shopping-item-{{ item.id }}">{{ item.item }}</span>
+            <form method="post" action="/ui/shopping-list/{{ item.id }}/adjust" class="stock-counter-action">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="delta" value="-1">
+              <button type="submit" aria-label="{{ t.decrease_shopping }}: {{ item.item }}">−</button>
+            </form>
+            <span class="shopping-counter-amount" aria-label="{{ t.amount }}: {{ item.amount }}">{{ item.amount }}</span>
+            <form method="post" action="/ui/shopping-list/{{ item.id }}/adjust" class="stock-counter-action">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="delta" value="1">
+              <button type="submit" aria-label="{{ t.increase_shopping }}: {{ item.item }}">+</button>
+            </form>
           </li>
         {% endfor %}
         </ul>

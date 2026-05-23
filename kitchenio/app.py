@@ -78,6 +78,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "no_stock_for_refill": "All stock database items are already in stock, or no stock database items exist yet.",
         "increase_stock": "Increase stock",
         "decrease_stock": "Decrease stock",
+        "increase_shopping": "Increase shopping amount",
+        "decrease_shopping": "Decrease shopping amount",
         "in_stock_count": "In stock",
         "settings_icon_label": "Open settings",
         "name": "Name",
@@ -142,6 +144,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "no_stock_for_refill": "Alle lagervarer er allerede på lager, eller ingen lagervarer finnes ennå.",
         "increase_stock": "Øk lager",
         "decrease_stock": "Reduser lager",
+        "increase_shopping": "Øk handlemengde",
+        "decrease_shopping": "Reduser handlemengde",
         "in_stock_count": "På lager",
         "settings_icon_label": "Åpne innstillinger",
         "name": "Navn",
@@ -783,6 +787,33 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 item=item,
                 amount=amount,
                 completed=completed,
+                stock_item_id=current.get("stock_item_id"),
+            ),
+            conn,
+        )
+        return redirect_home(lang, theme, "shopping-panel")
+
+    @app.post("/ui/shopping-list/{item_id}/adjust")
+    def ui_adjust_shopping(
+        item_id: int,
+        conn: sqlite3.Connection = Depends(db),
+        delta: int = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+    ) -> RedirectResponse:
+        current = get_shopping_or_404(conn, item_id)
+        if delta not in {-1, 1}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="delta must be -1 or 1")
+        current_count = parse_stock_count(current["amount"])
+        if current_count is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="shopping amount is not numeric")
+        next_count = max(Decimal("1"), current_count + Decimal(delta))
+        update_shopping(
+            item_id,
+            ShoppingUpdate(
+                item=current["item"],
+                amount=format_stock_count(next_count),
+                completed=bool(current["completed"]),
                 stock_item_id=current.get("stock_item_id"),
             ),
             conn,

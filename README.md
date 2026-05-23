@@ -126,6 +126,7 @@ Recommended display:
 - Use the sensor's `items`, `low_stock_items`, and `stock_table` attributes for dashboard cards and automations.
 - Keep shopping in Home Assistant's built-in list, `todo.shopping_list`, instead of managing a second list.
 - Open shopping-list items sync both ways between Home Assistant and the KitchenIO dashboard, with `kitchenio.sync_shopping_list` available for immediate syncs.
+- Home Assistant shopping items use the `Name x1`, `Name x2` quantity format.
 
 Full setup instructions are in [`docs/home-assistant.md`](docs/home-assistant.md).
 

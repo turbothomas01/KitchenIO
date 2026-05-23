@@ -14,7 +14,8 @@ from .const import DEFAULT_SHOPPING_LIST_ENTITY, DEFAULT_SHOPPING_SYNC_INTERVAL,
 from .coordinator import KitchenIOCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-_AMOUNT_RE = re.compile(r"^(.+?)\s*\(([^()]+)\)\s*$")
+_AMOUNT_RE = re.compile(r"^(.+?)\s+x(\d+)\s*$", re.IGNORECASE)
+_LEGACY_AMOUNT_RE = re.compile(r"^(.+?)\s*\(([^()]+)\)\s*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,7 @@ class ShoppingEntry:
     name: str
     amount: str
     text: str
+    canonical_text: str
     source_id: Any = None
 
 
@@ -101,11 +103,13 @@ class KitchenIOShoppingSync:
     ) -> None:
         """Initial sync: preserve both lists by taking the union."""
         for key, item in ha_by_key.items():
+            if item.text != item.canonical_text:
+                await self._async_replace_ha_item(item.text, item.canonical_text)
             if key not in kitchenio_by_key:
                 await self.coordinator.client.async_add_shopping_item(item.name, item.amount)
         for key, item in kitchenio_by_key.items():
             if key not in ha_by_key:
-                await self._async_add_ha_item(item.text)
+                await self._async_add_ha_item(item.canonical_text)
 
     async def _apply_bidirectional_changes(
         self,
@@ -130,12 +134,14 @@ class KitchenIOShoppingSync:
             ha_keys.discard(key)
 
         for key, item in ha_by_key.items():
+            if item.text != item.canonical_text:
+                await self._async_replace_ha_item(item.text, item.canonical_text)
             if key not in kitchenio_keys:
                 await self.coordinator.client.async_add_shopping_item(item.name, item.amount)
 
         for key, item in kitchenio_by_key.items():
             if key not in ha_keys:
-                await self._async_add_ha_item(item.text)
+                await self._async_add_ha_item(item.canonical_text)
 
     async def _async_get_kitchenio_items(self) -> list[ShoppingEntry]:
         items = await self.coordinator.client.async_shopping_list()
@@ -179,6 +185,10 @@ class KitchenIOShoppingSync:
             blocking=True,
         )
 
+    async def _async_replace_ha_item(self, old_text: str, new_text: str) -> None:
+        await self._async_remove_ha_item(old_text)
+        await self._async_add_ha_item(new_text)
+
 
 def _extract_todo_items(response: Any, entity_id: str) -> list[dict[str, Any]]:
     if not isinstance(response, dict):
@@ -195,13 +205,23 @@ def _entry_from_text(text: str) -> ShoppingEntry:
     clean = " ".join(text.strip().split())
     match = _AMOUNT_RE.match(clean)
     if match:
-        return _entry_from_parts(match.group(1), match.group(2))
-    return _entry_from_parts(clean, "1")
+        return _entry_from_parts(match.group(1), match.group(2), text=clean)
+    legacy_match = _LEGACY_AMOUNT_RE.match(clean)
+    if legacy_match:
+        return _entry_from_parts(legacy_match.group(1), legacy_match.group(2), text=clean)
+    return _entry_from_parts(clean, "1", text=clean)
 
 
-def _entry_from_parts(name: str, amount: str, source_id: Any = None) -> ShoppingEntry:
+def _entry_from_parts(name: str, amount: str, source_id: Any = None, text: str | None = None) -> ShoppingEntry:
     clean_name = " ".join(str(name).strip().split())
     clean_amount = " ".join(str(amount or "1").strip().split()) or "1"
-    text = f"{clean_name} ({clean_amount})"
+    canonical_text = f"{clean_name} x{clean_amount}"
     key = f"{clean_name.casefold()}\u241f{clean_amount.casefold()}"
-    return ShoppingEntry(key=key, name=clean_name, amount=clean_amount, text=text, source_id=source_id)
+    return ShoppingEntry(
+        key=key,
+        name=clean_name,
+        amount=clean_amount,
+        text=text or canonical_text,
+        canonical_text=canonical_text,
+        source_id=source_id,
+    )
