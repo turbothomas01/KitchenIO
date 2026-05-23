@@ -1,9 +1,8 @@
 function setupDialogs() {
   document.querySelectorAll('[aria-haspopup="dialog"][aria-controls]').forEach((button) => {
-    const dialog = document.getElementById(button.getAttribute('aria-controls'));
-    if (!dialog) return;
-
     button.addEventListener('click', () => {
+      const dialog = document.getElementById(button.getAttribute('aria-controls'));
+      if (!dialog) return;
       if (typeof dialog.showModal === 'function') {
         dialog.showModal();
       } else {

@@ -88,6 +88,7 @@ main {
 .card,
 .edit-form,
 .item-card,
+.product-counter-row,
 .shopping-counter-row,
 .stock-counter-card {
   background: var(--surface);
@@ -105,6 +106,26 @@ main {
 
 .panel {
   margin-block: 1.5rem;
+}
+
+.tabs {
+  margin: 1rem 0;
+}
+
+.tabs [role="tablist"] {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tabs [role="tab"] {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.tabs [role="tab"][aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .card,
@@ -146,14 +167,21 @@ dialog::backdrop {
 }
 
 .add-button {
+  align-items: center;
   border-radius: 999px;
   bottom: max(1rem, env(safe-area-inset-bottom));
   box-shadow: 0 0.75rem 1.5rem rgb(0 0 0 / 0.25);
+  display: inline-flex;
+  font-size: 1.75rem;
+  height: 3.25rem;
+  justify-content: center;
+  line-height: 1;
   min-height: 3.25rem;
   min-width: 3.25rem;
-  padding: 0.75rem 1rem;
+  padding: 0;
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));
+  width: 3.25rem;
   z-index: 10;
 }
 
@@ -262,10 +290,15 @@ a:focus {
   border-style: dashed;
 }
 
+.product-counter-row,
 .shopping-counter-row {
   align-items: center;
   display: grid;
   gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.shopping-counter-row {
   grid-template-columns: auto minmax(0, 1fr) auto auto auto;
 }
 
@@ -273,11 +306,13 @@ a:focus {
   border-style: dashed;
 }
 
+.product-counter-name,
 .shopping-counter-name {
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
+.product-counter-amount,
 .shopping-counter-amount {
   color: var(--muted);
   font-weight: 700;
@@ -328,8 +363,8 @@ a:focus {
 
   .add-button {
     margin: 0;
-    min-width: 7rem;
-    width: auto;
+    min-width: 3.25rem;
+    width: 3.25rem;
   }
 
   .stock-counter-action button {

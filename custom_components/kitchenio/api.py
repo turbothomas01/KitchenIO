@@ -37,8 +37,8 @@ class KitchenIOClient:
         return data
 
     async def async_products(self) -> list[dict[str, Any]]:
-        """Return the KitchenIO v1 product list."""
-        return await self.async_shopping_list()
+        """Return the KitchenIO product list."""
+        return await self.async_stock()
 
     async def async_shopping_list(self) -> list[dict[str, Any]]:
         data = await self._request("GET", "/api/shopping-list")

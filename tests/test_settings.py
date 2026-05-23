@@ -43,18 +43,24 @@ def test_home_uses_plus_button_that_opens_accessible_product_dialog(tmp_path: Pa
     assert response.status_code == 200
     soup = BeautifulSoup(response.text, "html.parser")
 
-    add_product_button = soup.find("button", attrs={"id": "open-product-dialog"})
+    add_product_button = soup.find("button", attrs={"id": "open-active-dialog"})
     assert add_product_button is not None
-    assert add_product_button.get_text(strip=True).startswith("+")
+    assert add_product_button.get_text(strip=True) == "+"
+    assert add_product_button["aria-label"] == "Add product"
     assert add_product_button["aria-haspopup"] == "dialog"
     assert add_product_button["aria-controls"] == "product-dialog"
+    assert add_product_button["data-shopping-label"] == "Add to shopping list"
 
     product_dialog = soup.find("dialog", attrs={"id": "product-dialog", "aria-labelledby": "add-product-heading"})
     assert product_dialog is not None
-    assert product_dialog.find("form", attrs={"action": "/ui/shopping-list"}) is not None
-    assert product_dialog.find("input", attrs={"name": "item"}) is not None
+    assert product_dialog.find("form", attrs={"action": "/ui/stock"}) is not None
+    assert product_dialog.find("input", attrs={"name": "name"}) is not None
     assert product_dialog.find("input", attrs={"name": "amount"}) is not None
     assert product_dialog.find("button", attrs={"value": "cancel"}) is not None
+
+    shopping_dialog = soup.find("dialog", attrs={"id": "shopping-dialog", "aria-labelledby": "add-shopping-heading"})
+    assert shopping_dialog is not None
+    assert shopping_dialog.find("form", attrs={"action": "/ui/shopping-list"}) is not None
 
 
 def test_api_key_creation_shows_key_once_and_secures_api(tmp_path: Path):

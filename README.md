@@ -1,15 +1,15 @@
 # KitchenIO
 
-KitchenIO is a small self-hosted grocery list service. Version 1 is intentionally focused on one simple product list: product name, amount, and plus/minus buttons.
+KitchenIO is a small self-hosted grocery list service. Version 1 is intentionally focused on two simple lists: products at home and the shopping list.
 
-It is similar in concept to Grocy, but deliberately minimal. There are no recipes, chores, batteries, calendars, meal planning, barcode scanning, stock database screens, or other unrelated features.
+It is similar in concept to Grocy, but intentionally simpler for daily use.
 
 ## Features
 
 - Accessible web UI built with semantic HTML.
-- One product list with checkbox, product name, amount, and plus/minus controls.
-- Add products as plain text with an amount.
-- Mark products completed.
+- Products tab with product name, amount, and plus/minus controls.
+- Shopping List tab with checkbox, item name, amount, and plus/minus controls.
+- Floating `+` button with tab-specific accessible label.
 - Light and dark themes.
 - English and Norwegian UI language.
 - Settings page for default theme, default language, and API key creation.
@@ -17,7 +17,7 @@ It is similar in concept to Grocy, but deliberately minimal. There are no recipe
 - SQLite storage.
 - REST API for Home Assistant, Hermes Agent, scripts, and automations.
 - Home Assistant custom integration under `custom_components/kitchenio`.
-- Product-list items sync both ways with the default Home Assistant `todo.shopping_list`.
+- Shopping-list items sync both ways with the default Home Assistant `todo.shopping_list`.
 - Accessible modal add screen opened from a `+` button.
 - Docker and Docker Compose support.
 - Basic automated tests.

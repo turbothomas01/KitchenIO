@@ -21,7 +21,7 @@ DEFAULT_DB = Path(os.getenv("KITCHENIO_DB", "data/kitchenio.db"))
 SUPPORTED_LANGUAGES = {"en", "no"}
 SUPPORTED_THEMES = {"light", "dark"}
 SAFE_STOCK_COUNT_RE = re.compile(r"^[+-]?\d{1,6}(?:[,.]\d{1,3})?$")
-STATIC_ASSETS = ("styles.css", "dialogs.js")
+STATIC_ASSETS = ("styles.css", "dialogs.js", "tabs.js")
 
 
 def static_asset_version(static_dir: Path) -> int:
@@ -63,7 +63,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "dark": "Dark",
         "apply": "Apply",
         "stock": "Stock",
-        "shopping_list": "Products",
+        "products": "Products",
+        "shopping_list": "Shopping List",
         "add_stock": "Add to stock",
         "create_stock_item": "Create stock database item",
         "add_bought_stock": "Refill existing stock item",
@@ -89,10 +90,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "save": "Save",
         "delete": "Delete",
         "add_to_shopping_list": "Add to shopping list",
-        "add_shopping": "Add product",
+        "add_product": "Add product",
+        "add_shopping": "Add to shopping list",
         "edit_shopping": "Edit shopping item",
-        "shopping_items": "Products",
-        "no_shopping": "No products yet.",
+        "product_items": "Products",
+        "no_products": "No products yet.",
+        "shopping_items": "Shopping list",
+        "no_shopping": "No shopping list items yet.",
         "item": "Item",
         "completed": "Completed",
         "mark_completed": "Mark completed",
@@ -129,7 +133,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "dark": "Mørkt",
         "apply": "Bruk",
         "stock": "Lager",
-        "shopping_list": "Produkter",
+        "products": "Produkter",
+        "shopping_list": "Handleliste",
         "add_stock": "Fyll på lager",
         "create_stock_item": "Opprett vare i lagerdatabasen",
         "add_bought_stock": "Fyll på eksisterende lagervare",
@@ -155,10 +160,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "save": "Lagre",
         "delete": "Slett",
         "add_to_shopping_list": "Legg til i handleliste",
-        "add_shopping": "Legg til produkt",
+        "add_product": "Legg til produkt",
+        "add_shopping": "Legg til i handlelisten",
         "edit_shopping": "Rediger handlelistevare",
-        "shopping_items": "Produkter",
-        "no_shopping": "Ingen produkter ennå.",
+        "product_items": "Produkter",
+        "no_products": "Ingen produkter ennå.",
+        "shopping_items": "Handleliste",
+        "no_shopping": "Ingen varer i handlelisten ennå.",
         "item": "Vare",
         "completed": "Fullført",
         "mark_completed": "Merk som fullført",
@@ -442,8 +450,6 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         current_lang = normalize_language(lang or persisted_settings["language"])
         current_theme = normalize_theme(theme or persisted_settings["theme"])
         stock = [enrich_stock_item(dict_from_row(row)) for row in conn.execute("SELECT * FROM stock_items ORDER BY name")]
-        in_stock_items = [item for item in stock if item["is_in_stock"]]
-        refill_items = [item for item in stock if not item["is_in_stock"]]
         shopping = [
             dict_from_row(row)
             for row in conn.execute("SELECT * FROM shopping_list_items ORDER BY completed, item")
@@ -455,8 +461,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
                 "t": TRANSLATIONS[current_lang],
                 "lang": current_lang,
                 "theme": current_theme,
-                "stock_items": in_stock_items,
-                "refill_items": refill_items,
+                "stock_items": stock,
                 "shopping_items": shopping,
                 "asset_version": asset_version,
             },
@@ -679,8 +684,13 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         name: str = Form(...),
         description: str = Form(""),
         amount: str = Form(...),
+        lang: str = Form("en"),
+        theme: str = Form("light"),
+        return_to: str = Form("settings"),
     ) -> RedirectResponse:
         add_stock(StockCreate(name=name, description=description, amount=amount), conn)
+        if return_to == "home":
+            return redirect_home(lang, theme, "products-panel")
         return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
 
     @app.post("/ui/stock/refill")
@@ -697,7 +707,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
             StockUpdate(name=current["name"], description=current["description"], amount=amount),
             conn,
         )
-        return redirect_home(lang, theme, "stock-panel")
+        return redirect_home(lang, theme, "products-panel")
 
     @app.post("/ui/stock/{item_id}/adjust")
     def ui_adjust_stock(
@@ -723,7 +733,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
             ),
             conn,
         )
-        return redirect_home(lang, theme, "stock-panel")
+        return redirect_home(lang, theme, "products-panel")
 
     @app.post("/ui/stock/{item_id}")
     def ui_update_stock(
@@ -739,7 +749,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         update_stock(item_id, StockUpdate(name=name, description=description, amount=amount), conn)
         if return_to == "settings":
             return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
-        return redirect_home(lang, theme, "stock-panel")
+        return redirect_home(lang, theme, "products-panel")
 
     @app.post("/ui/stock/{item_id}/delete")
     def ui_delete_stock(
@@ -752,7 +762,7 @@ def create_app(db_path: str | Path = DEFAULT_DB) -> FastAPI:
         delete_stock(item_id, conn)
         if return_to == "settings":
             return RedirectResponse(url="/settings?saved=1", status_code=status.HTTP_303_SEE_OTHER)
-        return redirect_home(lang, theme, "stock-panel")
+        return redirect_home(lang, theme, "products-panel")
 
     @app.post("/ui/stock/{item_id}/shopping-list")
     def ui_stock_to_shopping(item_id: int, conn: sqlite3.Connection = Depends(db), lang: str = Form("en"), theme: str = Form("light")):

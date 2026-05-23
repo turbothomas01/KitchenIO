@@ -1,15 +1,18 @@
 # KitchenIO Home Assistant integration
 
-KitchenIO version 1 is a simple product list. Home Assistant integration is focused on the default Shopping List / To-do entity, not on a separate stock database.
+KitchenIO version 1 has two simple tabs:
 
-## Product list strategy
+- **Products**: local KitchenIO product list with amounts and plus/minus controls.
+- **Shopping List**: items to buy, synced with Home Assistant's built-in shopping list.
 
-KitchenIO does not create a second shopping list in Home Assistant. It uses the default Home Assistant shopping list entity, usually `todo.shopping_list`, and syncs both ways with KitchenIO's dashboard.
+## Shopping list sync strategy
 
-The integration periodically syncs open product-list items every 30 seconds:
+KitchenIO does not create a second shopping list in Home Assistant. It uses the default Home Assistant shopping list entity, usually `todo.shopping_list`, and syncs both ways with KitchenIO's Shopping List tab.
 
-- Items added in Home Assistant appear in the KitchenIO dashboard.
-- Items added in KitchenIO appear in Home Assistant's default shopping list.
+The integration periodically syncs open shopping-list items every 30 seconds:
+
+- Items added in Home Assistant appear in KitchenIO's Shopping List tab.
+- Items added in KitchenIO's Shopping List tab appear in Home Assistant's default shopping list.
 - Items removed or completed after the first sync are removed from the other side.
 - Home Assistant items are canonicalized as `Milk x1`, `Milk x2`, and so on. Items added as plain text, for example `Milk`, sync to KitchenIO as amount `1` and then back to Home Assistant as `Milk x1`.
 - Legacy items written as `Milk (2)` are still understood and rewritten as `Milk x2`.
@@ -47,7 +50,7 @@ Add an Entities card with the KitchenIO `Products` sensor, or add a Markdown car
 
 ## Service examples
 
-Add a product:
+Add a shopping-list item:
 
 ```yaml
 service: kitchenio.add_item_to_shopping_list

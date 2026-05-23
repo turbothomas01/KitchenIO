@@ -17,30 +17,100 @@
   </header>
 
   <main>
-    <section id="products-panel" class="panel" aria-label="{{ t.shopping_items }}">
-      <button id="open-product-dialog" class="add-button" type="button" aria-haspopup="dialog" aria-controls="product-dialog">+ {{ t.add_shopping }}</button>
-      <dialog id="product-dialog" aria-labelledby="add-product-heading" aria-modal="true">
-        <form method="dialog" class="dialog-close-form">
-          <button type="submit" value="cancel">{{ t.close }}</button>
-        </form>
-        <form method="post" action="/ui/shopping-list" aria-labelledby="add-product-heading">
-          <h3 id="add-product-heading">{{ t.add_shopping }}</h3>
-          <p>{{ t.plain_text_hint }}</p>
-          <input type="hidden" name="lang" value="{{ lang }}">
-          <input type="hidden" name="theme" value="{{ theme }}">
-          <div>
-            <label for="product-item">{{ t.item }}</label>
-            <input id="product-item" name="item" autocomplete="off" required>
-          </div>
-          <div>
-            <label for="product-amount">{{ t.amount }}</label>
-            <input id="product-amount" name="amount" autocomplete="off" value="1" required>
-          </div>
-          <button type="submit">{{ t.add_shopping }}</button>
-        </form>
-      </dialog>
+    <nav class="tabs" aria-label="{{ t.main_sections }}">
+      <div role="tablist" aria-label="{{ t.main_sections }}">
+        <button id="products-tab" type="button" role="tab" aria-selected="true" aria-controls="products-panel">{{ t.products }}</button>
+        <button id="shopping-tab" type="button" role="tab" aria-selected="false" aria-controls="shopping-panel" tabindex="-1">{{ t.shopping_list }}</button>
+      </div>
+    </nav>
 
-      <h3>{{ t.shopping_items }}</h3>
+    <button
+      id="open-active-dialog"
+      class="add-button"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls="product-dialog"
+      aria-label="{{ t.add_product }}"
+      title="{{ t.add_product }}"
+      data-products-label="{{ t.add_product }}"
+      data-shopping-label="{{ t.add_shopping }}"
+      data-products-dialog="product-dialog"
+      data-shopping-dialog="shopping-dialog"
+    >+</button>
+
+    <dialog id="product-dialog" aria-labelledby="add-product-heading" aria-modal="true">
+      <form method="dialog" class="dialog-close-form">
+        <button type="submit" value="cancel">{{ t.close }}</button>
+      </form>
+      <form method="post" action="/ui/stock" aria-labelledby="add-product-heading">
+        <h3 id="add-product-heading">{{ t.add_product }}</h3>
+        <p>{{ t.plain_text_hint }}</p>
+        <input type="hidden" name="lang" value="{{ lang }}">
+        <input type="hidden" name="theme" value="{{ theme }}">
+        <input type="hidden" name="return_to" value="home">
+        <div>
+          <label for="product-item">{{ t.item }}</label>
+          <input id="product-item" name="name" autocomplete="off" required>
+        </div>
+        <div>
+          <label for="product-amount">{{ t.amount }}</label>
+          <input id="product-amount" name="amount" autocomplete="off" value="1" required>
+        </div>
+        <button type="submit">{{ t.add_product }}</button>
+      </form>
+    </dialog>
+
+    <dialog id="shopping-dialog" aria-labelledby="add-shopping-heading" aria-modal="true">
+      <form method="dialog" class="dialog-close-form">
+        <button type="submit" value="cancel">{{ t.close }}</button>
+      </form>
+      <form method="post" action="/ui/shopping-list" aria-labelledby="add-shopping-heading">
+        <h3 id="add-shopping-heading">{{ t.add_shopping }}</h3>
+        <p>{{ t.plain_text_hint }}</p>
+        <input type="hidden" name="lang" value="{{ lang }}">
+        <input type="hidden" name="theme" value="{{ theme }}">
+        <div>
+          <label for="shopping-item">{{ t.item }}</label>
+          <input id="shopping-item" name="item" autocomplete="off" required>
+        </div>
+        <div>
+          <label for="shopping-amount">{{ t.amount }}</label>
+          <input id="shopping-amount" name="amount" autocomplete="off" value="1" required>
+        </div>
+        <button type="submit">{{ t.add_shopping }}</button>
+      </form>
+    </dialog>
+
+    <section id="products-panel" class="panel" role="tabpanel" aria-labelledby="products-tab">
+      <h2>{{ t.products }}</h2>
+      {% if stock_items %}
+        <ul class="item-list" aria-label="{{ t.product_items }}">
+        {% for item in stock_items %}
+          <li class="product-counter-row" data-product-id="{{ item.id }}">
+            <span class="product-counter-name" id="product-item-{{ item.id }}">{{ item.name }}</span>
+            <form method="post" action="/ui/stock/{{ item.id }}/adjust" class="stock-counter-action">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="delta" value="-1">
+              <button type="submit" aria-label="{{ t.decrease_stock }}: {{ item.name }}">−</button>
+            </form>
+            <span class="product-counter-amount" aria-label="{{ t.amount }}: {{ item.stock_count }}">{{ item.stock_count }}</span>
+            <form method="post" action="/ui/stock/{{ item.id }}/adjust" class="stock-counter-action">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <input type="hidden" name="theme" value="{{ theme }}">
+              <input type="hidden" name="delta" value="1">
+              <button type="submit" aria-label="{{ t.increase_stock }}: {{ item.name }}">+</button>
+            </form>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>{{ t.no_products }}</p>
+      {% endif %}
+    </section>
+
+    <section id="shopping-panel" class="panel" role="tabpanel" aria-labelledby="shopping-tab" hidden>
+      <h2>{{ t.shopping_list }}</h2>
       {% if shopping_items %}
         <ul class="item-list" aria-label="{{ t.shopping_items }}">
         {% for item in shopping_items %}
@@ -74,5 +144,6 @@
     </section>
   </main>
   <script src="{{ url_for('static', path='/dialogs.js') }}?v={{ asset_version }}" defer></script>
+  <script src="{{ url_for('static', path='/tabs.js') }}?v={{ asset_version }}" defer></script>
 </body>
 </html>
