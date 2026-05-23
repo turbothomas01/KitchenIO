@@ -9,6 +9,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from .const import DEFAULT_SHOPPING_LIST_ENTITY, DOMAIN
 
 SERVICE_ADD_ITEM_TO_SHOPPING_LIST = "add_item_to_shopping_list"
+SERVICE_SYNC_SHOPPING_LIST = "sync_shopping_list"
 DEFAULT_TODO_SHOPPING_LIST = "todo.shopping_list"
 
 
@@ -24,6 +25,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     """Register KitchenIO services."""
     if hass.services.has_service(DOMAIN, SERVICE_ADD_ITEM_TO_SHOPPING_LIST):
         return
+
+    async def sync_shopping_list(call: ServiceCall) -> None:
+        for entry_data in hass.data.get(DOMAIN, {}).values():
+            await entry_data["sync"].async_sync()
 
     async def add_item_to_shopping_list(call: ServiceCall) -> None:
         coordinator = _first_coordinator(hass)
@@ -69,11 +74,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         add_item_to_shopping_list,
         schema=schema,
     )
+    hass.services.async_register(DOMAIN, SERVICE_SYNC_SHOPPING_LIST, sync_shopping_list)
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unregister KitchenIO services."""
     hass.services.async_remove(DOMAIN, SERVICE_ADD_ITEM_TO_SHOPPING_LIST)
+    hass.services.async_remove(DOMAIN, SERVICE_SYNC_SHOPPING_LIST)
 
 
 def _shopping_item_text(name: str, amount: Any) -> str:

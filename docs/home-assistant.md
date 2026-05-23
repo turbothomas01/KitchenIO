@@ -15,14 +15,14 @@ This avoids creating one entity per pantry item, which gets noisy and hard to ma
 
 KitchenIO does not create a second shopping list in Home Assistant. It uses the default Home Assistant shopping list entity, usually `todo.shopping_list`, and syncs both ways with KitchenIO's dashboard.
 
-The integration periodically syncs open shopping-list items:
+The integration periodically syncs open shopping-list items every 30 seconds:
 
 - Items added in Home Assistant appear in the KitchenIO dashboard.
 - Items added in KitchenIO appear in Home Assistant's default shopping list.
 - Items removed or completed after the first sync are removed from the other side.
 - Home Assistant items written as `Milk (2)` become KitchenIO item `Milk` with amount `2`; items without an amount default to amount `1`.
 
-The integration also provides the service `kitchenio.add_item_to_shopping_list` for automations. It can add either an existing KitchenIO stock item by `stock_item_id`, or a plain item by `name` and optional `amount`.
+The integration also provides the service `kitchenio.add_item_to_shopping_list` for automations. It can add either an existing KitchenIO stock item by `stock_item_id`, or a plain item by `name` and optional `amount`. Use `kitchenio.sync_shopping_list` if you want to force an immediate sync.
 
 ## Install with HACS custom repository
 

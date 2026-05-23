@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_SHOPPING_LIST_ENTITY, DOMAIN
+from .const import DEFAULT_SHOPPING_LIST_ENTITY, DEFAULT_SHOPPING_SYNC_INTERVAL, DOMAIN
 from .coordinator import KitchenIOCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class KitchenIOShoppingSync:
         self._unsub = async_track_time_interval(
             self.hass,
             lambda now: self.hass.async_create_task(self.async_sync()),
-            DEFAULT_SCAN_INTERVAL,
+            DEFAULT_SHOPPING_SYNC_INTERVAL,
         )
 
     async def async_stop(self) -> None:

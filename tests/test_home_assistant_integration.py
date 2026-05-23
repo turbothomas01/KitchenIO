@@ -43,6 +43,7 @@ def test_shopping_list_integration_uses_home_assistant_default_todo_service():
     assert '"add_item"' in sync
     assert '"remove_item"' in sync
     assert "DEFAULT_SHOPPING_LIST_ENTITY" in sync
+    assert "sync_shopping_list" in services
 
 
 def test_docs_explain_hacs_install_and_default_shopping_list_strategy():
