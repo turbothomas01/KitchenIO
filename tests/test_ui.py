@@ -123,6 +123,20 @@ def test_mobile_product_counter_styles_are_present():
     assert "@media (max-width: 44rem) {\n  .site-header," not in styles
 
 
+def test_dialog_styles_are_modern_and_mobile_safe():
+    styles = Path("kitchenio/static/styles.css").read_text(encoding="utf-8")
+
+    assert "--dialog-shadow" in styles
+    assert "--surface-elevated" in styles
+    assert "dialog::backdrop" in styles
+    assert "backdrop-filter: blur" in styles
+    assert "dialog[open]" in styles
+    assert "@keyframes dialog-in" in styles
+    assert "dialog form:not(.dialog-close-form) button[type=\"submit\"]" in styles
+    assert ".dialog-close-form button" in styles
+    assert "dialog > form:not(.dialog-close-form)" in styles
+
+
 def test_settings_does_not_expose_stock_database_in_first_version(tmp_path: Path):
     client = TestClient(create_app(tmp_path / "kitchenio-test.db"))
 

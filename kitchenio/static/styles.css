@@ -7,21 +7,27 @@
 body[data-theme="light"] {
   --bg: #f7f7f3;
   --surface: #ffffff;
+  --surface-elevated: #ffffff;
   --text: #1d1d1f;
   --muted: #555761;
   --border: #c9ccd4;
   --accent: #064f8a;
   --accent-text: #ffffff;
+  --dialog-shadow: 0 1.5rem 4rem rgb(15 23 42 / 0.22), 0 0 0 1px rgb(15 23 42 / 0.06);
+  --input-bg: #fbfbfd;
 }
 
 body[data-theme="dark"] {
   --bg: #111318;
   --surface: #1d2028;
+  --surface-elevated: #242936;
   --text: #f3f4f8;
   --muted: #c5c8d2;
   --border: #555b68;
   --accent: #8fc7ff;
   --accent-text: #111318;
+  --dialog-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --input-bg: #171a22;
 }
 
 * {
@@ -137,22 +143,107 @@ main {
 }
 
 dialog {
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0) 38%),
+    var(--surface-elevated);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 1.35rem;
+  box-shadow: var(--dialog-shadow);
   color: var(--text);
-  max-width: min(42rem, calc(100% - 2rem));
-  padding: 1.25rem;
+  max-width: min(31rem, calc(100% - 2rem));
+  padding: 0;
   width: 100%;
 }
 
+dialog[open] {
+  animation: dialog-in 140ms ease-out;
+}
+
 dialog::backdrop {
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(5 8 13 / 0.68);
+  backdrop-filter: blur(0.25rem);
+}
+
+dialog > form:not(.dialog-close-form) {
+  display: grid;
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+dialog h3 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+dialog p {
+  color: var(--muted);
+  margin: -0.35rem 0 0;
+}
+
+dialog label {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+dialog input,
+dialog textarea,
+dialog select {
+  background: var(--input-bg);
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 0.85rem;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  min-height: 3rem;
+  padding: 0.8rem 0.9rem;
+}
+
+dialog form:not(.dialog-close-form) button[type="submit"] {
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0.65rem 1.2rem rgb(0 0 0 / 0.18);
+  min-height: 3rem;
+  padding: 0.8rem 1rem;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .dialog-close-form {
   display: flex;
   justify-content: flex-end;
+  padding: 0.9rem 0.9rem 0;
+}
+
+.dialog-close-form button {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.9rem;
+  line-height: 1;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+  width: auto;
+}
+
+.dialog-close-form button:hover,
+.dialog-close-form button:focus {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--text);
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .dialog-choices {
@@ -365,6 +456,23 @@ a:focus {
     margin: 0;
     min-width: 3.25rem;
     width: 3.25rem;
+  }
+
+  dialog {
+    max-width: min(31rem, calc(100% - 1rem));
+  }
+
+  dialog > form:not(.dialog-close-form) {
+    padding: 0 1rem 1rem;
+  }
+
+  .dialog-close-form button {
+    margin-top: 0;
+    width: auto;
+  }
+
+  dialog form:not(.dialog-close-form) button[type="submit"] {
+    width: 100%;
   }
 
   .stock-counter-action button {
